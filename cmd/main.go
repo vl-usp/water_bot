@@ -12,6 +12,7 @@ import (
 
 func main() {
 	log := logger.Get()
+	defer logger.CloseFile()
 
 	cfg := config.Get()
 	log.Info("config loaded")

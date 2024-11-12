@@ -41,3 +41,7 @@ func Get() *slog.Logger {
 
 	return log
 }
+
+func CloseFile() {
+	file.Close()
+}
