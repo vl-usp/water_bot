@@ -5,43 +5,47 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"sync"
+	"syscall"
 	"time"
 )
 
 const (
-	logDir = "./logs"
+	envLocal = "local"
+	envDev   = "dev"
+	envProd  = "prod"
 )
 
-var (
-	log  *slog.Logger
-	file *os.File
-	once sync.Once
-)
+// SetupLogger creates a new logger.
+func SetupLogger(env string, logDirPath string) (*slog.Logger, *os.File) {
+	var log *slog.Logger
+	syscall.Umask(0)
+	defer syscall.Umask(022)
 
-func Get() *slog.Logger {
-	once.Do(func() {
-		filename := time.Now().Format("2006-01-02") + ".log"
-		err := os.MkdirAll(logDir, os.ModePerm)
+	if _, err := os.Stat(logDirPath); os.IsNotExist(err) {
+		err := os.MkdirAll(logDirPath, os.ModePerm)
 		if err != nil {
 			panic("failed to create log directory: " + err.Error())
 		}
+	}
 
-		fp := filepath.Clean(logDir + "/" + filename)
-		file, err = os.OpenFile(fp, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
-		if err != nil {
-			panic("failed to open log file: " + err.Error())
-		}
+	fileName := time.Now().Format(time.DateOnly) + ".log"
+	filePath := logDirPath + "/" + fileName
+	file, err := os.OpenFile(filepath.Clean(filePath), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic("failed to open log file: " + err.Error())
+	}
+	writer := io.MultiWriter(os.Stdout, file)
 
-		writer := io.MultiWriter(os.Stdout, file)
-		log = slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
+	switch env {
+	case envLocal, envDev:
+		log = slog.New(slog.NewJSONHandler(writer, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		}))
-	})
+	case envProd:
+		log = slog.New(slog.NewJSONHandler(writer, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+	}
 
-	return log
-}
-
-func CloseFile() {
-	file.Close()
+	return log, file
 }

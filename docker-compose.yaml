@@ -1,0 +1,31 @@
+volumes:
+  pg_volume:
+
+networks:
+  watereminder_bot:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: always
+    env_file:
+      .env
+    ports:
+      - "54320:5432"
+    volumes:
+      - pg_volume:/var/lib/postgresql/data/
+    networks:
+      - watereminder_bot
+
+  bot:
+    build:
+      context: .
+      dockerfile: dockerfile
+    restart: always
+    env_file:
+      .env
+    volumes:
+      - ./${LOG_DIR_PATH}:/workdir/logs
+    networks:
+      - watereminder_bot

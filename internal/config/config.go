@@ -1,36 +1,72 @@
 package config
 
 import (
-	"log/slog"
-	"sync"
+	"fmt"
 
-	"github.com/cristalhq/aconfig"
-	"github.com/cristalhq/aconfig/aconfigyaml"
+	"github.com/joho/godotenv"
+	"github.com/vl-usp/water_bot/internal/config/env"
 )
 
-type Config struct {
-	TelegramBotToken string `yaml:"telegram_bot_token" env:"TELEGRAM_BOT_TOKEN" required:"true"`
+// Load loads environment variables from a .env file at the given path.
+func Load(path string) error {
+	// Load the .env file
+	err := godotenv.Load(path)
+	if err != nil {
+		// If loading the .env file fails, return a wrapped error
+		return fmt.Errorf("failed to load config from path %s: %w", path, err)
+	}
+
+	return nil
 }
 
-var (
-	cfg  Config
-	once sync.Once
-)
+// PGConfig is an interface that defines methods for PostgreSQL configuration.
+type PGConfig interface {
+	DSN() string
+}
 
-func Get() Config {
-	once.Do(func() {
-		loader := aconfig.LoaderFor(&cfg, aconfig.Config{
-			EnvPrefix: "WB",
-			Files:     []string{"./config.yaml", "./config.local.yaml", "$HOME/.config/water_bot/config.yaml"},
-			FileDecoders: map[string]aconfig.FileDecoder{
-				".yaml": aconfigyaml.New(),
-			},
-		})
+// TGBotConfig is an interface that defines methods for Telegram Bot configuration.
+type TGBotConfig interface {
+	Token() string
+}
 
-		if err := loader.Load(); err != nil {
-			slog.Error("failed to load config", "error", err)
-		}
-	})
+// LogConfig is an interface that defines methods for log configuration.
+type LogConfig interface {
+	DirPath() string
+	Env() string
+}
 
-	return cfg
+// Config contains all the configuration options.
+type Config struct {
+	PG    PGConfig
+	TGBot TGBotConfig
+	Log   LogConfig
+}
+
+// NewEnv creates a new Config by calling the respective New* functions from the env package and returns it.
+// If any of the New* functions returns an error, it is wrapped into a fmt.Errorf and returned.
+func NewEnv() (*Config, error) {
+	// Get the PostgreSQL configuration
+	pgConfig, err := env.NewPGConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pg config: %w", err)
+	}
+
+	// Get the Telegram Bot configuration
+	tgBotConfig, err := env.NewTGBotConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tg bot config: %w", err)
+	}
+
+	// Get the log configuration
+	logConfig, err := env.NewLogConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get log config: %w", err)
+	}
+
+	// Create a new Config and return it
+	return &Config{
+		PG:    pgConfig,
+		TGBot: tgBotConfig,
+		Log:   logConfig,
+	}, nil
 }
