@@ -27,12 +27,14 @@ type repo struct {
 	db db.Client
 }
 
+// NewRepository returns a new user repository.
 func NewRepository(db db.Client) repository.UserRepository {
 	return &repo{
 		db: db,
 	}
 }
 
+// Create creates a new user.
 func (r *repo) Create(ctx context.Context, user *model.User) (int64, error) {
 	builder := sq.Insert(tableName).
 		PlaceholderFormat(sq.Dollar).
@@ -59,6 +61,7 @@ func (r *repo) Create(ctx context.Context, user *model.User) (int64, error) {
 	return id, nil
 }
 
+// Get returns a user by id.
 func (r *repo) Get(ctx context.Context, id int64) (*model.User, error) {
 	builder := sq.Select(idColumn, firstNameColumn, lastNameColumn, usernameColumn, langCodeColumn, createdAtColumn).
 		PlaceholderFormat(sq.Dollar).

@@ -27,10 +27,14 @@ func (tgbot *TGBot) startHandler(ctx context.Context, b *bot.Bot, update *models
 				ChatID: update.Message.Chat.ID,
 				Text:   fmt.Sprintf("Hello, user #%d! You are already registered", id),
 			})
+			if err != nil {
+				logger.Get("tgbot", "tgbot.startHandler").Error("failed to send message", "error", err.Error())
+			}
 			return
-		} else {
-			logger.Get("tgbot", "tgbot.startHandler").Error("failed to create user", "error", err.Error())
 		}
+
+		logger.Get("tgbot", "tgbot.startHandler").Error("failed to create user", "error", err.Error())
+
 	}
 	// init onboarding
 
@@ -38,7 +42,6 @@ func (tgbot *TGBot) startHandler(ctx context.Context, b *bot.Bot, update *models
 		ChatID: update.Message.Chat.ID,
 		Text:   fmt.Sprintf("Hello, user #%d!", id),
 	})
-
 	if err != nil {
 		logger.Get("tgbot", "tgbot.startHandler").Error("failed to send message", "error", err.Error())
 	}

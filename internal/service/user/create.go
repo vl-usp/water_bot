@@ -6,6 +6,7 @@ import (
 	"github.com/vl-usp/water_bot/internal/model"
 )
 
+// Create creates a new user.
 func (s *serv) Create(ctx context.Context, user *model.User) (int64, error) {
 	var id int64
 

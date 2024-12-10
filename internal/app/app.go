@@ -9,11 +9,13 @@ import (
 	"github.com/vl-usp/water_bot/pkg/logger"
 )
 
+// App represents an application.
 type App struct {
 	bot             *tgbot.TGBot
 	serviceProvider *serviceProvider
 }
 
+// NewApp creates a new application.
 func NewApp(ctx context.Context) (*App, error) {
 	a := &App{}
 
@@ -25,6 +27,7 @@ func NewApp(ctx context.Context) (*App, error) {
 	return a, nil
 }
 
+// Run starts the application.
 func (a *App) Run(ctx context.Context) error {
 	defer func() {
 		closer.Add(func() error {

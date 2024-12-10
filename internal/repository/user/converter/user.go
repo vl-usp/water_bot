@@ -5,6 +5,7 @@ import (
 	modelRepo "github.com/vl-usp/water_bot/internal/repository/user/model"
 )
 
+// ToUserFromRepo converts a modelRepo.User to a model.User.
 func ToUserFromRepo(user *modelRepo.User) *model.User {
 	return &model.User{
 		ID:           user.ID,

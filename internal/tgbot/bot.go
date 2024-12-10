@@ -8,7 +8,7 @@ import (
 	"github.com/vl-usp/water_bot/pkg/logger"
 )
 
-// Bot represents a Telegram bot client.
+// TGBot represents a Telegram bot client.
 type TGBot struct {
 	userService service.UserService
 
@@ -35,6 +35,7 @@ func New(token string, userService service.UserService) (*TGBot, error) {
 	return tgbot, nil
 }
 
+// Run starts the Telegram bot.
 func (tgbot *TGBot) Run(ctx context.Context) {
 	logger.Get("tgbot", "tgbot.Run").Info("running tgbot...")
 	tgbot.bot.Start(ctx)
