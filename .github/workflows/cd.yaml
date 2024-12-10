@@ -34,7 +34,7 @@ jobs:
           envs: IMAGE_NAME, GITHUB_SHA
           script: |
             # Change to deployment directory
-            cd ~/deploy
+            cd ~/deploy/${{ env.IMAGE_NAME }}
 
             # Pull latest images
             docker compose pull
