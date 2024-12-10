@@ -1,0 +1,42 @@
+volumes:
+  pg_volume:
+
+networks:
+  watereminder_bot:
+    driver: bridge
+
+services:
+  pg:
+    image: postgres:17-alpine
+    restart: always
+    env_file:
+      .env
+    ports:
+      - "54320:5432"
+    volumes:
+      - pg_volume:/var/lib/postgresql/data/
+    networks:
+      - watereminder_bot
+
+  migrator:
+    image: ghcr.io/${REGISTRY_USERNAME}/${IMAGE_NAME}-migration:${VERSION_TAG}
+    container_name: water_bot-migration
+    restart: on-failure
+    environment:
+      DB_HOST: pg
+    depends_on:
+      - pg
+    networks:
+      - watereminder_bot
+
+  bot:
+    image: ghcr.io/${REGISTRY_USERNAME}/${IMAGE_NAME}:${VERSION_TAG}
+    container_name: water_bot-bot
+    restart: always
+    env_file:
+      .env
+    volumes:
+      - ./logs:/workdir/logs
+    networks:
+      - watereminder_bot
+

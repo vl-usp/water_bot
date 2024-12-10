@@ -6,30 +6,47 @@ on:
 env:
   REGISTRY: "ghcr.io"
   IMAGE_NAME: "water_bot"
-  CONTAINER_NAME: "water_bot-cont"
 
 jobs:
   deploy-image:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to cloud via SSH action
+      - name: Create .env files from secrets
+        run: |
+          echo '${{ secrets.ENV_FILE_CONTENT }}' > .env
+
+      - name: Copy docker-compose.prod.ymal to the target server
+        uses: appleboy/scp-action@master
+        envs: IMAGE_NAME
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "./docker-compose.prod.yaml,.env"
+          target: ~/deploy/${{ env.IMAGE_NAME }}
+
+      - name: Deploy via SSH (with Compose)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          envs: REGISTRY, IMAGE_NAME, GITHUB_SHA, CONTAINER_NAME
+          envs: IMAGE_NAME, GITHUB_SHA
           script: |
-            #Setup variables
-            TAG_NAME=$(echo $GITHUB_SHA | head -c7)
+            # Change to deployment directory
+            cd ~/deploy
 
-            #Login into Registry
-            docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} ${{ env.REGISTRY }}
+            # Pull latest images
+            docker compose pull
 
-            #Stop and remove old container
-            docker stop ${{ env.CONTAINER_NAME }}
-            docker rm ${{ env.CONTAINER_NAME }}
+            # Set environment variables
+            export VERSION_TAG=$(echo $GITHUB_SHA | head -c7)
+            export IMAGE_NAME=${{ env.IMAGE_NAME }}
+            export REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}
 
-            #Run new container
-            docker run -d -p 55001:55001 --name ${{ env.CONTAINER_NAME }} -t ${{ env.REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG_NAME
+            # Start or recreate containers
+            docker compose up -f docker-compose.prod.yaml -d --force-recreate
+
+            # Clean up unused resources
+            docker system prune -f

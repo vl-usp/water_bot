@@ -25,7 +25,7 @@ func (tgbot *TGBot) startHandler(ctx context.Context, b *bot.Bot, update *models
 		if errors.IsUniqueViolation(err) {
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   fmt.Sprintf("Hello, user #%d! You are already registered", id),
+				Text:   fmt.Sprintf("Hello, user #%d! You are already registered", update.Message.From.ID),
 			})
 			if err != nil {
 				logger.Get("tgbot", "tgbot.startHandler").Error("failed to send message", "error", err.Error())
@@ -45,4 +45,6 @@ func (tgbot *TGBot) startHandler(ctx context.Context, b *bot.Bot, update *models
 	if err != nil {
 		logger.Get("tgbot", "tgbot.startHandler").Error("failed to send message", "error", err.Error())
 	}
+
+	tgbot.onboardingHandler(ctx, b, update)
 }
