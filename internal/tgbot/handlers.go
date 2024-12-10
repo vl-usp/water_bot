@@ -46,5 +46,5 @@ func (tgbot *TGBot) startHandler(ctx context.Context, b *bot.Bot, update *models
 		logger.Get("tgbot", "tgbot.startHandler").Error("failed to send message", "error", err.Error())
 	}
 
-	tgbot.onboardingHandler(ctx, b, update)
+	// tgbot.onboardingHandler(ctx, b, update)
 }
