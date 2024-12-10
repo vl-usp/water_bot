@@ -1,4 +1,4 @@
-package env
+package config
 
 import (
 	"errors"
@@ -14,8 +14,13 @@ const (
 	pgPasswordEnvName = "POSTGRES_PASSWORD"
 )
 
-// PGConfig contains the PostgreSQL connection configuration details.
-type PGConfig struct {
+// PGConfig is an interface that defines methods for PostgreSQL configuration.
+type PGConfig interface {
+	DSN() string
+}
+
+// pgConfig contains the PostgreSQL connection configuration details.
+type pgConfig struct {
 	host     string // the database server host
 	port     string // the port on which the database server is listening
 	name     string // the name of the database
@@ -26,7 +31,7 @@ type PGConfig struct {
 // NewPGConfig creates a new PGConfig by getting the PostgreSQL connection
 // configuration details from the respective environment variables.
 // If any of the environment variables is not set, it returns an error.
-func NewPGConfig() (*PGConfig, error) {
+func NewPGConfig() (PGConfig, error) {
 	// Get the PostgreSQL database server host
 	host := os.Getenv(pgHostEnvName)
 	if len(host) == 0 {
@@ -57,14 +62,16 @@ func NewPGConfig() (*PGConfig, error) {
 		return nil, errors.New("postgres password is not set")
 	}
 
-	// Create a new PGConfig and return it
-	return &PGConfig{
+	pgConf := &pgConfig{
 		host:     host,
 		port:     port,
 		name:     name,
 		user:     user,
 		password: password,
-	}, nil
+	}
+
+	// Create a new PGConfig and return it
+	return pgConf, nil
 }
 
 // DSN returns the Data Source Name (DSN) for the PostgreSQL connection.
@@ -72,6 +79,6 @@ func NewPGConfig() (*PGConfig, error) {
 // The DSN is in the following format:
 //
 //	host=<host> port=<port> user=<user> password=<password> dbname=<name> sslmode=disable
-func (c *PGConfig) DSN() string {
+func (c pgConfig) DSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", c.host, c.port, c.user, c.password, c.name)
 }

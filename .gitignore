@@ -1,6 +1,4 @@
 bin
 logs
 
-config.yaml
 .env
-.env.docker

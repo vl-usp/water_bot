@@ -6,7 +6,7 @@ networks:
     driver: bridge
 
 services:
-  db:
+  pg:
     image: postgres:17-alpine
     restart: always
     env_file:
@@ -18,6 +18,18 @@ services:
     networks:
       - watereminder_bot
 
+  migrator:
+    build:
+      context: .
+      dockerfile: migration.dockerfile
+    restart: on-failure
+    environment:
+      DB_HOST: pg
+    depends_on:
+      - pg
+    networks:
+      - watereminder_bot
+
   bot:
     build:
       context: .
@@ -26,6 +38,6 @@ services:
     env_file:
       .env
     volumes:
-      - ./${LOG_DIR_PATH}:/workdir/logs
+      - ./logs:/workdir/logs
     networks:
       - watereminder_bot

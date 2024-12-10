@@ -1,4 +1,4 @@
-FROM golang:1.23.3-alpine AS builder
+FROM golang:1.23.4-alpine AS builder
 
 WORKDIR /workdir
 
@@ -9,7 +9,8 @@ RUN go mod download
 
 COPY . .
 
-RUN if [ -f ".env.docker" ]; then cp .env.docker .env; fi
+RUN if [ -f .env ]; then echo ".env file exists, using .env"; \
+    else cp .env.default .env && echo ".env file not found, using .env.default"; fi
 
 RUN go build -o ./bin/bot ./cmd/bot/main.go
 

@@ -2,53 +2,22 @@ package main
 
 import (
 	"context"
-	"flag"
-	"log/slog"
-	"os"
-	"os/signal"
 
-	"github.com/vl-usp/water_bot/internal/bot"
-	"github.com/vl-usp/water_bot/internal/config"
+	"github.com/vl-usp/water_bot/internal/app"
 	"github.com/vl-usp/water_bot/pkg/logger"
 )
 
-var envPath string
-
-func init() {
-	flag.StringVar(&envPath, "env", ".env", "path to .env file")
-}
-
 func main() {
-	flag.Parse()
-	if err := config.Load(envPath); err != nil {
-		slog.Error("failed to load config", "error", err.Error())
-		panic("failed to load config: " + err.Error())
-	}
+	ctx := context.Background()
 
-	cfg, err := config.NewEnv()
+	a, err := app.NewApp(ctx)
 	if err != nil {
-		slog.Error("failed to create config", "error", err.Error())
-		panic("failed to create config: " + err.Error())
+		logger.Get("main", "main").Error("failed to init app", "error", err.Error())
 	}
+	logger.Get("main", "main").Info("app created")
 
-	log, file := logger.SetupLogger(cfg.Log.Env(), cfg.Log.DirPath())
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			log.Error("failed to close log file", "error", err.Error())
-		}
-	}()
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
-	bot, err := bot.New(cfg.TGBot.Token())
+	err = a.Run(ctx)
 	if err != nil {
-		log.Error("failed to create bot", "error", err)
-		panic(err)
+		logger.Get("main", "main").Error("failed to run app", "error", err.Error())
 	}
-	log.Info("bot created")
-
-	log.Info("starting the bot")
-	bot.Start(ctx)
 }
