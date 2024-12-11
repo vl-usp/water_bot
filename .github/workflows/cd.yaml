@@ -37,6 +37,8 @@ jobs:
             # Change to deployment directory
             cd ~/deploy/${{ env.IMAGE_NAME }}
 
+            mv docker-compose.prod.yaml docker-compose.yaml
+
             # Pull latest images
             docker compose pull
 
@@ -46,7 +48,7 @@ jobs:
             export REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}
 
             # Start or recreate containers
-            docker compose up -f docker-compose.prod.yaml -d --force-recreate
+            docker compose up -d --force-recreate
 
             # Clean up unused resources
             docker system prune -f
