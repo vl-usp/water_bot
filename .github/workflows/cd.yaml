@@ -17,11 +17,6 @@ jobs:
         run: |
           echo '${{ secrets.ENV_FILE_CONTENT }}' > .env
 
-          # Set environment variables
-          echo 'VERSION_TAG=$(echo $GITHUB_SHA | head -c7)' >> .env
-          echo 'IMAGE_NAME=${{ env.IMAGE_NAME }}' >> .env
-          echo 'REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}' >> .env
-
       - name: Copy docker-compose.prod.ymal to the target server
         uses: appleboy/scp-action@master
         with:
@@ -43,6 +38,11 @@ jobs:
             cd ~/deploy/${{ env.IMAGE_NAME }}
 
             mv docker-compose.prod.yaml docker-compose.yaml
+
+            # Set environment variables
+            echo 'VERSION_TAG=$(echo $GITHUB_SHA | head -c7)' >> .env
+            echo 'IMAGE_NAME=${{ env.IMAGE_NAME }}' >> .env
+            echo 'REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}' >> .env
 
             # Pull latest images
             docker compose pull
