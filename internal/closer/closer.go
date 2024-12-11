@@ -4,18 +4,19 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/vl-usp/water_bot/pkg/logger"
 )
 
-var globalCloser = New()
+var globalCloser = New(syscall.SIGTERM, syscall.SIGINT)
 
 // Add adds `func() error` callback to the globalCloser
 func Add(f ...func() error) {
 	globalCloser.Add(f...)
 }
 
-// Wait ...
+// Wait waits until all closer functions are done
 func Wait() {
 	globalCloser.Wait()
 }

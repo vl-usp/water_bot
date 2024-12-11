@@ -21,31 +21,31 @@ func NewTransactionManager(db db.Transactor) db.TxManager {
 	}
 }
 
-// transaction is a general function that executes the specified user handler in a transaction
+// transaction is a general function that executes the specified user handler in a transaction.
 func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn db.Handler) (err error) {
-	// Если это вложенная транзакция, пропускаем инициацию новой транзакции и выполняем обработчик.
+	// If this is a nested transaction, skip the initialization of a new transaction and execute the handler.
 	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
 	if ok {
 		return fn(ctx)
 	}
 
-	// Стартуем новую транзакцию.
+	// Start a new transaction.
 	tx, err = m.db.BeginTx(ctx, opts)
 	if err != nil {
 		return errors.Wrap(err, "can't begin transaction")
 	}
 
-	// Кладем транзакцию в контекст.
+	// Make a context with a transaction.
 	ctx = pg.MakeContextTx(ctx, tx)
 
-	// Настраиваем функцию отсрочки для отката или коммита транзакции.
+	// Set up a deferred function to rollback or commit the transaction.
 	defer func() {
-		// восстанавливаемся после паники
+		// recover from panic
 		if r := recover(); r != nil {
 			err = errors.Errorf("panic recovered: %v", r)
 		}
 
-		// откатываем транзакцию, если произошла ошибка
+		// rollback transaction, if an error occurred
 		if err != nil {
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
 				err = errors.Wrapf(err, "errRollback: %v", errRollback)
@@ -54,7 +54,7 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn db.Han
 			return
 		}
 
-		// если ошибок не было, коммитим транзакцию
+		// commit transaction
 		if nil == err {
 			err = tx.Commit(ctx)
 			if err != nil {
@@ -63,9 +63,9 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn db.Han
 		}
 	}()
 
-	// Выполните код внутри транзакции.
-	// Если функция терпит неудачу, возвращаем ошибку, и функция отсрочки выполняет откат
-	// или в противном случае транзакция коммитится.
+	// Execute the code inside the transaction.
+	// If the function fails, return the error and the transaction is rolled back
+	// or committed, depending on the result.
 	if err = fn(ctx); err != nil {
 		err = errors.Wrap(err, "failed executing code inside transaction")
 	}

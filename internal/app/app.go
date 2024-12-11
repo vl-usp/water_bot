@@ -58,6 +58,7 @@ func (a *App) initDeps(ctx context.Context) error {
 }
 
 func (a *App) initConfig(_ context.Context) error {
+	// TODO: read from flag
 	err := config.Load(".env")
 	if err != nil {
 		return err

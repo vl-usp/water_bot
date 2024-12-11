@@ -38,8 +38,8 @@ func NewRepository(db db.Client) repository.UserRepository {
 func (r *repo) Create(ctx context.Context, user *model.User) (int64, error) {
 	builder := sq.Insert(tableName).
 		PlaceholderFormat(sq.Dollar).
-		Columns(idColumn, firstNameColumn, lastNameColumn, usernameColumn, langCodeColumn, createdAtColumn).
-		Values(user.ID, user.FirstName, user.LastName, user.Username, user.LanguageCode, user.CreatedAt).
+		Columns(idColumn, firstNameColumn, lastNameColumn, usernameColumn, langCodeColumn).
+		Values(user.ID, user.FirstName, user.LastName, user.Username, user.LanguageCode).
 		Suffix("RETURNING id")
 
 	query, args, err := builder.ToSql()
@@ -80,14 +80,7 @@ func (r *repo) Get(ctx context.Context, id int64) (*model.User, error) {
 	}
 
 	var user modelRepo.User
-	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(
-		&user.ID,
-		&user.FirstName,
-		&user.LastName,
-		&user.Username,
-		&user.LanguageCode,
-		&user.CreatedAt,
-	)
+	err = r.db.DB().ScanOneContext(ctx, &user, q, args...)
 	if err != nil {
 		return nil, err
 	}

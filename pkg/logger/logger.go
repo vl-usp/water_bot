@@ -59,9 +59,16 @@ func Get(pkg string, fn string) *slog.Logger {
 		writer := io.MultiWriter(os.Stdout, loggerFile)
 
 		// Create a new logger instance
-		globalLogger = slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
+		if os.Getenv("DEBUG") == "true" {
+			globalLogger = slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
+				Level: slog.LevelDebug,
+			}))
+		} else {
+			globalLogger = slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
+				Level: slog.LevelInfo,
+			}))
+		}
+
 	}
 
 	return globalLogger.WithGroup(pkg).With("fn", fn)

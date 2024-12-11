@@ -21,19 +21,23 @@ const (
 )
 
 type pg struct {
-	dbc *pgxpool.Pool
+	dbc       *pgxpool.Pool
+	debugMode bool
 }
 
 // NewDB creates a new DB client.
-func NewDB(dbc *pgxpool.Pool) db.DB {
+func NewDB(dbc *pgxpool.Pool, debugMode bool) db.DB {
 	return &pg{
-		dbc: dbc,
+		dbc:       dbc,
+		debugMode: debugMode,
 	}
 }
 
-// ScanOneContext scans one row from the database.
+// ScanOneContext scans one row from the database to dest structure with tags.
 func (p *pg) ScanOneContext(ctx context.Context, dest interface{}, q db.Query, args ...interface{}) error {
-	logQuery(ctx, q, args...)
+	if p.debugMode {
+		logQuery(ctx, q, args...)
+	}
 
 	row, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -43,9 +47,11 @@ func (p *pg) ScanOneContext(ctx context.Context, dest interface{}, q db.Query, a
 	return pgxscan.ScanOne(dest, row)
 }
 
-// ScanAllContext scans all rows from the database.
+// ScanAllContext scans all rows from the database to dest structure with tags.
 func (p *pg) ScanAllContext(ctx context.Context, dest interface{}, q db.Query, args ...interface{}) error {
-	logQuery(ctx, q, args...)
+	if p.debugMode {
+		logQuery(ctx, q, args...)
+	}
 
 	rows, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -57,7 +63,9 @@ func (p *pg) ScanAllContext(ctx context.Context, dest interface{}, q db.Query, a
 
 // ExecContext executes a query.
 func (p *pg) ExecContext(ctx context.Context, q db.Query, args ...interface{}) (pgconn.CommandTag, error) {
-	logQuery(ctx, q, args...)
+	if p.debugMode {
+		logQuery(ctx, q, args...)
+	}
 
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
 	if ok {
@@ -69,7 +77,9 @@ func (p *pg) ExecContext(ctx context.Context, q db.Query, args ...interface{}) (
 
 // QueryContext executes a query with a context.
 func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...interface{}) (pgx.Rows, error) {
-	logQuery(ctx, q, args...)
+	if p.debugMode {
+		logQuery(ctx, q, args...)
+	}
 
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
 	if ok {
@@ -81,7 +91,9 @@ func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...interface{}) 
 
 // QueryRowContext executes a query with a context.
 func (p *pg) QueryRowContext(ctx context.Context, q db.Query, args ...interface{}) pgx.Row {
-	logQuery(ctx, q, args...)
+	if p.debugMode {
+		logQuery(ctx, q, args...)
+	}
 
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
 	if ok {

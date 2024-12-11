@@ -16,8 +16,9 @@ import (
 )
 
 type serviceProvider struct {
-	pgConfig config.PGConfig
-	tgConfig config.TGConfig
+	systemConfig config.SystemConfig
+	pgConfig     config.PGConfig
+	tgConfig     config.TGConfig
 
 	dbClient       db.Client
 	txManager      db.TxManager
@@ -27,6 +28,20 @@ type serviceProvider struct {
 
 func newServiceProvider() *serviceProvider {
 	return &serviceProvider{}
+}
+
+// SystemConfig returns a config that stores system settings.
+func (s *serviceProvider) SystemConfig() config.SystemConfig {
+	if s.systemConfig == nil {
+		cfg, err := config.NewSystemConfig()
+		if err != nil {
+			logger.Get("app", "s.SystemConfig").Error("failed to get system config", "error", err.Error())
+		}
+
+		s.systemConfig = cfg
+	}
+
+	return s.systemConfig
 }
 
 // PGConfig returns a pg config.
@@ -60,7 +75,7 @@ func (s *serviceProvider) TGConfig() config.TGConfig {
 // DBClient returns a db client.
 func (s *serviceProvider) DBClient(ctx context.Context) db.Client {
 	if s.dbClient == nil {
-		cl, err := pg.New(ctx, s.PGConfig().DSN())
+		cl, err := pg.New(ctx, s.PGConfig().DSN(), s.SystemConfig().Debug())
 		if err != nil {
 			logger.Get("app", "s.DBClient").Error("failed to create db client", "error", err.Error())
 		}

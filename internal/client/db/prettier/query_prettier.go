@@ -13,6 +13,7 @@ const (
 )
 
 // Pretty formats a query string with placeholders and their corresponding values.
+// !UNSAFE
 func Pretty(query string, placeholder string, args ...any) string {
 	for i, param := range args {
 		var value string
