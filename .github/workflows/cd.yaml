@@ -43,9 +43,9 @@ jobs:
             docker compose pull
 
             # Set environment variables
-            export VERSION_TAG=$(echo $GITHUB_SHA | head -c7)
-            export IMAGE_NAME=${{ env.IMAGE_NAME }}
-            export REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}
+            echo 'VERSION_TAG=$(echo $GITHUB_SHA | head -c7)' >> .env
+            echo 'IMAGE_NAME=${{ env.IMAGE_NAME }}' >> .env
+            echo 'REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}' >> .env
 
             # Start or recreate containers
             docker compose up -d --force-recreate
