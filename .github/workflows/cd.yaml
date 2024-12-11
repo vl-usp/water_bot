@@ -17,6 +17,11 @@ jobs:
         run: |
           echo '${{ secrets.ENV_FILE_CONTENT }}' > .env
 
+          # Set environment variables
+          echo 'VERSION_TAG=$(echo $GITHUB_SHA | head -c7)' >> .env
+          echo 'IMAGE_NAME=${{ env.IMAGE_NAME }}' >> .env
+          echo 'REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}' >> .env
+
       - name: Copy docker-compose.prod.ymal to the target server
         uses: appleboy/scp-action@master
         with:
@@ -41,11 +46,6 @@ jobs:
 
             # Pull latest images
             docker compose pull
-
-            # Set environment variables
-            echo 'VERSION_TAG=$(echo $GITHUB_SHA | head -c7)' >> .env
-            echo 'IMAGE_NAME=${{ env.IMAGE_NAME }}' >> .env
-            echo 'REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}' >> .env
 
             # Start or recreate containers
             docker compose up -d --force-recreate
