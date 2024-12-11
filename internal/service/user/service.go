@@ -21,3 +21,19 @@ func NewService(
 		txManager: txManager,
 	}
 }
+
+// NewMockService creates a new mock user service.
+func NewMockService(deps ...interface{}) service.UserService {
+	srv := serv{}
+
+	for _, v := range deps {
+		switch s := v.(type) {
+		case repository.UserRepository:
+			srv.userRepo = s
+		case db.TxManager:
+			srv.txManager = s
+		}
+	}
+
+	return &srv
+}
