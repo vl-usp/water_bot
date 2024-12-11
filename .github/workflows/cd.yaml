@@ -25,6 +25,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "docker-compose.prod.yaml,.env"
           target: ~/deploy/${{ env.IMAGE_NAME }}
+          timeout: 120s
 
       - name: Deploy via SSH (with Compose)
         uses: appleboy/ssh-action@master
