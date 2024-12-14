@@ -7,17 +7,22 @@ require (
 	github.com/brianvoe/gofakeit/v7 v7.1.2
 	github.com/georgysavva/scany v1.2.2
 	github.com/go-telegram/bot v1.10.1
+	github.com/go-telegram/fsm v0.1.0
+	github.com/go-telegram/ui v0.4.1
 	github.com/gojuno/minimock/v3 v3.4.3
 	github.com/jackc/pgconn v1.14.3
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
+	github.com/redis/go-redis/v9 v9.7.0
 	github.com/stretchr/testify v1.10.0
 )
 
 require (
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

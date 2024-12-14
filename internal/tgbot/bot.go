@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-telegram/bot"
+	"github.com/go-telegram/fsm"
 	"github.com/vl-usp/water_bot/internal/service"
 	"github.com/vl-usp/water_bot/pkg/logger"
 )
@@ -11,8 +12,8 @@ import (
 // TGBot represents a Telegram bot client.
 type TGBot struct {
 	userService service.UserService
-
-	bot *bot.Bot
+	bot         *bot.Bot
+	fsm         *fsm.FSM
 }
 
 // New creates a new Telegram bot client.
@@ -21,7 +22,9 @@ func New(token string, userService service.UserService) (*TGBot, error) {
 		userService: userService,
 	}
 
-	opts := []bot.Option{}
+	opts := []bot.Option{
+		bot.WithDefaultHandler(tgbot.defaultHandler),
+	}
 
 	b, err := bot.New(token, opts...)
 	if err != nil {
@@ -31,6 +34,7 @@ func New(token string, userService service.UserService) (*TGBot, error) {
 	tgbot.bot = b
 
 	tgbot.setHandlers()
+	tgbot.initFSM()
 
 	return tgbot, nil
 }

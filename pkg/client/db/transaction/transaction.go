@@ -5,9 +5,8 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
-
-	"github.com/vl-usp/water_bot/internal/client/db"
-	"github.com/vl-usp/water_bot/internal/client/db/pg"
+	"github.com/vl-usp/water_bot/pkg/client/db"
+	"github.com/vl-usp/water_bot/pkg/client/db/pg"
 )
 
 type manager struct {

@@ -12,6 +12,7 @@ import (
 // App represents an application.
 type App struct {
 	bot             *tgbot.TGBot
+	configProvider  *configProvider
 	serviceProvider *serviceProvider
 }
 
@@ -42,7 +43,7 @@ func (a *App) Run(ctx context.Context) error {
 
 func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
-		a.initConfig,
+		a.initConfigProvider,
 		a.initServiceProvider,
 		a.initTGBot,
 	}
@@ -57,24 +58,25 @@ func (a *App) initDeps(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) initConfig(_ context.Context) error {
+func (a *App) initConfigProvider(_ context.Context) error {
 	// TODO: read from flag
 	err := config.Load(".env")
 	if err != nil {
 		return err
 	}
 
+	a.configProvider = newConfigProvider()
 	return nil
 }
 
 func (a *App) initServiceProvider(_ context.Context) error {
-	a.serviceProvider = newServiceProvider()
+	a.serviceProvider = newServiceProvider(a.configProvider)
 	return nil
 }
 
 func (a *App) initTGBot(ctx context.Context) error {
 	bot, err := tgbot.New(
-		a.serviceProvider.TGConfig().Token(),
+		a.configProvider.TGConfig().Token(),
 		a.serviceProvider.UserService(ctx),
 	)
 	if err != nil {

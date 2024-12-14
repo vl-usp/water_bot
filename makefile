@@ -17,7 +17,7 @@ lint:
 	$(LOCAL_BIN)/golangci-lint run ./... --config .golangci.yaml
 
 test:
-	go test -v ./... -coverprofile tmp/coverage.txt
+	go test -v ./...
 
 install-deps:
 	GOBIN=$(LOCAL_BIN) go install github.com/pressly/goose/v3/cmd/goose@v3.23.0

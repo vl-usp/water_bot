@@ -2,11 +2,11 @@ package pg
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
-
-	"github.com/vl-usp/water_bot/internal/client/db"
+	"github.com/vl-usp/water_bot/pkg/client/db"
 )
 
 type pgClient struct {
@@ -14,14 +14,14 @@ type pgClient struct {
 }
 
 // New creates a new PostgreSQL client.
-func New(ctx context.Context, dsn string, debugMode bool) (db.Client, error) {
+func New(ctx context.Context, dsn string, log *slog.Logger, debugMode bool) (db.Client, error) {
 	dbc, err := pgxpool.Connect(ctx, dsn)
 	if err != nil {
 		return nil, errors.Errorf("failed to connect to db: %v", err)
 	}
 
 	return &pgClient{
-		masterDBC: NewDB(dbc, debugMode),
+		masterDBC: NewDB(dbc, log, debugMode),
 	}, nil
 }
 

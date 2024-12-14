@@ -1,24 +1,27 @@
 package user
 
 import (
-	"github.com/vl-usp/water_bot/internal/client/db"
 	"github.com/vl-usp/water_bot/internal/repository"
 	"github.com/vl-usp/water_bot/internal/service"
+	"github.com/vl-usp/water_bot/pkg/client/db"
 )
 
 type serv struct {
-	userRepo  repository.UserRepository
-	txManager db.TxManager
+	userRepo     repository.UserRepository
+	userDataRepo repository.UserDataRepository
+	txManager    db.TxManager
 }
 
 // NewService creates a new user service.
 func NewService(
 	userRepo repository.UserRepository,
+	userDataRepo repository.UserDataRepository,
 	txManager db.TxManager,
 ) service.UserService {
 	return &serv{
-		userRepo:  userRepo,
-		txManager: txManager,
+		userRepo:     userRepo,
+		userDataRepo: userDataRepo,
+		txManager:    txManager,
 	}
 }
 
@@ -30,6 +33,8 @@ func NewMockService(deps ...interface{}) service.UserService {
 		switch s := v.(type) {
 		case repository.UserRepository:
 			srv.userRepo = s
+		case repository.UserDataRepository:
+			srv.userDataRepo = s
 		case db.TxManager:
 			srv.txManager = s
 		}

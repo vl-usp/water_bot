@@ -71,7 +71,7 @@ func Get(pkg string, fn string) *slog.Logger {
 
 	}
 
-	return globalLogger.WithGroup(pkg).With("fn", fn)
+	return globalLogger.With("pkg", pkg, "fn", fn)
 }
 
 // CloseFile closes the logger file

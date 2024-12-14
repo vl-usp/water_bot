@@ -3,79 +3,46 @@ package app
 import (
 	"context"
 
-	"github.com/vl-usp/water_bot/internal/client/db"
-	"github.com/vl-usp/water_bot/internal/client/db/pg"
-	"github.com/vl-usp/water_bot/internal/client/db/transaction"
 	"github.com/vl-usp/water_bot/internal/closer"
-	"github.com/vl-usp/water_bot/internal/config"
 	"github.com/vl-usp/water_bot/internal/repository"
 	userRepository "github.com/vl-usp/water_bot/internal/repository/user"
+	userDataRepository "github.com/vl-usp/water_bot/internal/repository/user_data"
 	"github.com/vl-usp/water_bot/internal/service"
 	userService "github.com/vl-usp/water_bot/internal/service/user"
+	"github.com/vl-usp/water_bot/pkg/client/cache"
+	"github.com/vl-usp/water_bot/pkg/client/cache/redis"
+	"github.com/vl-usp/water_bot/pkg/client/db"
+	"github.com/vl-usp/water_bot/pkg/client/db/pg"
+	"github.com/vl-usp/water_bot/pkg/client/db/transaction"
 	"github.com/vl-usp/water_bot/pkg/logger"
 )
 
 type serviceProvider struct {
-	systemConfig config.SystemConfig
-	pgConfig     config.PGConfig
-	tgConfig     config.TGConfig
+	configProvider *configProvider
 
-	dbClient       db.Client
-	txManager      db.TxManager
-	userRepository repository.UserRepository
-	userService    service.UserService
+	dbClient           db.Client
+	txManager          db.TxManager
+	redisClient        cache.Client
+	userRepository     repository.UserRepository
+	userDataRepository repository.UserDataRepository
+	userService        service.UserService
 }
 
-func newServiceProvider() *serviceProvider {
-	return &serviceProvider{}
-}
-
-// SystemConfig returns a config that stores system settings.
-func (s *serviceProvider) SystemConfig() config.SystemConfig {
-	if s.systemConfig == nil {
-		cfg, err := config.NewSystemConfig()
-		if err != nil {
-			logger.Get("app", "s.SystemConfig").Error("failed to get system config", "error", err.Error())
-		}
-
-		s.systemConfig = cfg
+func newServiceProvider(configProvider *configProvider) *serviceProvider {
+	return &serviceProvider{
+		configProvider: configProvider,
 	}
-
-	return s.systemConfig
-}
-
-// PGConfig returns a pg config.
-func (s *serviceProvider) PGConfig() config.PGConfig {
-	if s.pgConfig == nil {
-		cfg, err := config.NewPGConfig()
-		if err != nil {
-			logger.Get("app", "s.PGConfig").Error("failed to get pg config", "error", err.Error())
-		}
-
-		s.pgConfig = cfg
-	}
-
-	return s.pgConfig
-}
-
-// TGConfig returns a tg config.
-func (s *serviceProvider) TGConfig() config.TGConfig {
-	if s.tgConfig == nil {
-		cfg, err := config.NewTGConfig()
-		if err != nil {
-			logger.Get("app", "s.TGConfig").Error("failed to get tg config", "error", err.Error())
-		}
-
-		s.tgConfig = cfg
-	}
-
-	return s.tgConfig
 }
 
 // DBClient returns a db client.
 func (s *serviceProvider) DBClient(ctx context.Context) db.Client {
 	if s.dbClient == nil {
-		cl, err := pg.New(ctx, s.PGConfig().DSN(), s.SystemConfig().Debug())
+		cl, err := pg.New(
+			ctx,
+			s.configProvider.PGConfig().DSN(),
+			logger.Get("pkg/client/db", ""),
+			s.configProvider.SystemConfig().Debug(),
+		)
 		if err != nil {
 			logger.Get("app", "s.DBClient").Error("failed to create db client", "error", err.Error())
 		}
@@ -101,6 +68,15 @@ func (s *serviceProvider) TxManager(ctx context.Context) db.TxManager {
 	return s.txManager
 }
 
+// RedisClient returns a redis client.
+func (s *serviceProvider) RedisClient(_ context.Context) cache.Client {
+	if s.redisClient == nil {
+		s.redisClient = redis.New(s.configProvider.RedisConfig(), logger.Get("pkg/client/cache/redis", ""))
+	}
+
+	return s.redisClient
+}
+
 // UserRepository returns a user repository.
 func (s *serviceProvider) UserRepository(ctx context.Context) repository.UserRepository {
 	if s.userRepository == nil {
@@ -110,11 +86,20 @@ func (s *serviceProvider) UserRepository(ctx context.Context) repository.UserRep
 	return s.userRepository
 }
 
+func (s *serviceProvider) UserDataRepository(ctx context.Context) repository.UserDataRepository {
+	if s.userDataRepository == nil {
+		s.userDataRepository = userDataRepository.NewRepository(s.DBClient(ctx), s.RedisClient(ctx))
+	}
+
+	return s.userDataRepository
+}
+
 // UserService returns a user service.
 func (s *serviceProvider) UserService(ctx context.Context) service.UserService {
 	if s.userService == nil {
 		s.userService = userService.NewService(
 			s.UserRepository(ctx),
+			s.UserDataRepository(ctx),
 			s.TxManager(ctx),
 		)
 	}
