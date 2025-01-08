@@ -63,5 +63,11 @@ const (
 // nolint:gochecknoglobals
 const (
 	WaterGoalKey     = "water_goal"
-	WaterGoalDefault = 2500
+	WaterGoalDefault = 2000
+)
+
+// nolint:gochecknoglobals
+const (
+	TimezoneQuestion = "Выберите свой часовой пояс"
+	TimezoneKey      = "timezone"
 )
