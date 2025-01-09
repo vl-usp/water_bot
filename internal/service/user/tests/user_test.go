@@ -12,7 +12,6 @@ import (
 	"github.com/vl-usp/water_bot/internal/constants"
 	"github.com/vl-usp/water_bot/internal/model"
 	"github.com/vl-usp/water_bot/internal/service/user"
-	"github.com/vl-usp/water_bot/internal/storage"
 	repoMocks "github.com/vl-usp/water_bot/internal/storage/mocks"
 	"github.com/vl-usp/water_bot/pkg/client/db"
 	dbMocks "github.com/vl-usp/water_bot/pkg/client/db/mocks"
@@ -22,7 +21,7 @@ import (
 func TestCreateUser(t *testing.T) {
 	t.Parallel()
 	type txManagerMockFunc func(mc *minimock.Controller) db.TxManager
-	type userStorerMockFunc func(mc *minimock.Controller) storage.User
+	type userStorerMockFunc func(mc *minimock.Controller) user.Storer
 
 	type args struct {
 		ctx context.Context
@@ -74,7 +73,7 @@ func TestCreateUser(t *testing.T) {
 					return fn(ctx)
 				})
 			},
-			userStorerMock: func(mc *minimock.Controller) storage.User {
+			userStorerMock: func(mc *minimock.Controller) user.Storer {
 				mock := repoMocks.NewUserMock(mc)
 				mock.CreateUserMock.Expect(ctx, req).Return(id, nil)
 				mock.GetUserMock.Expect(ctx, id).Return(&req, nil)
@@ -95,7 +94,7 @@ func TestCreateUser(t *testing.T) {
 					return fn(ctx)
 				})
 			},
-			userStorerMock: func(mc *minimock.Controller) storage.User {
+			userStorerMock: func(mc *minimock.Controller) user.Storer {
 				mock := repoMocks.NewUserMock(mc)
 				mock.CreateUserMock.Expect(ctx, req).Return(0, storageErr)
 				return mock
@@ -122,7 +121,7 @@ func TestCreateUser(t *testing.T) {
 // TestGetUser tests the GetUser function of the user service
 func TestGetUser(t *testing.T) {
 	t.Parallel()
-	type userStorerMockFunc func(mc *minimock.Controller) storage.User
+	type userStorerMockFunc func(mc *minimock.Controller) user.Storer
 
 	type args struct {
 		ctx context.Context
@@ -167,7 +166,7 @@ func TestGetUser(t *testing.T) {
 			},
 			want: res,
 			err:  nil,
-			userStorerMock: func(mc *minimock.Controller) storage.User {
+			userStorerMock: func(mc *minimock.Controller) user.Storer {
 				mock := repoMocks.NewUserMock(mc)
 				mock.GetUserMock.Expect(ctx, id).Return(res, nil)
 				return mock
@@ -181,7 +180,7 @@ func TestGetUser(t *testing.T) {
 			},
 			want: nil,
 			err:  storageErr,
-			userStorerMock: func(mc *minimock.Controller) storage.User {
+			userStorerMock: func(mc *minimock.Controller) user.Storer {
 				mock := repoMocks.NewUserMock(mc)
 				mock.GetUserMock.Expect(ctx, id).Return(nil, storageErr)
 				return mock
@@ -207,7 +206,7 @@ func TestGetUser(t *testing.T) {
 // TestSaveUserParam tests the SaveUserParam function of the user service
 func TestSaveUserParam(t *testing.T) {
 	t.Parallel()
-	type userCacherMockFunc func(mc *minimock.Controller) storage.UserCache
+	type userCacherMockFunc func(mc *minimock.Controller) user.Cacher
 
 	type args struct {
 		ctx    context.Context
@@ -251,7 +250,7 @@ func TestSaveUserParam(t *testing.T) {
 				value:  value,
 			},
 			err: nil,
-			userCacherMock: func(mc *minimock.Controller) storage.UserCache {
+			userCacherMock: func(mc *minimock.Controller) user.Cacher {
 				mock := repoMocks.NewUserCacheMock(mc)
 				mock.SaveUserParamMock.Expect(ctx, userID, field, value).Return(nil)
 				return mock
@@ -266,7 +265,7 @@ func TestSaveUserParam(t *testing.T) {
 				value:  value,
 			},
 			err: storageErr,
-			userCacherMock: func(mc *minimock.Controller) storage.UserCache {
+			userCacherMock: func(mc *minimock.Controller) user.Cacher {
 				mock := repoMocks.NewUserCacheMock(mc)
 				mock.SaveUserParamMock.Expect(ctx, userID, field, value).Return(storageErr)
 				return mock
@@ -292,8 +291,8 @@ func TestSaveUserParam(t *testing.T) {
 func TestUpdateUserFromCache(t *testing.T) {
 	t.Parallel()
 	type txManagerMockFunc func(mc *minimock.Controller) db.TxManager
-	type userStorerMockFunc func(mc *minimock.Controller) storage.User
-	type userCacherMockFunc func(mc *minimock.Controller) storage.UserCache
+	type userStorerMockFunc func(mc *minimock.Controller) user.Storer
+	type userCacherMockFunc func(mc *minimock.Controller) user.Cacher
 
 	type args struct {
 		ctx    context.Context
@@ -397,7 +396,7 @@ func TestUpdateUserFromCache(t *testing.T) {
 					return fn(ctx)
 				})
 			},
-			userStorerMock: func(mc *minimock.Controller) storage.User {
+			userStorerMock: func(mc *minimock.Controller) user.Storer {
 				mock := repoMocks.NewUserMock(mc)
 				mock.GetFullUserParamsMock.Expect(ctx, *params).Return(fullParams, nil)
 				mock.CreateUserParamsMock.Expect(ctx, *fullParams).Return(paramsID, nil)
@@ -405,7 +404,7 @@ func TestUpdateUserFromCache(t *testing.T) {
 				mock.UpdateUserMock.Expect(ctx, userID, *userObj).Return(nil)
 				return mock
 			},
-			userCacherMock: func(mc *minimock.Controller) storage.UserCache {
+			userCacherMock: func(mc *minimock.Controller) user.Cacher {
 				mock := repoMocks.NewUserCacheMock(mc)
 				mock.GetUserParamsMock.Expect(ctx, userID).Return(params, nil)
 				return mock
