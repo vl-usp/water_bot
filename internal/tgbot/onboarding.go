@@ -23,7 +23,7 @@ func (client *Client) setOnboardingFSM() {
 }
 
 // getOnboardingKeyboard returns the keyboard for the onboarding by the current state
-func (client *Client) getOnboardingKeyboard(chatID int64) *inline.Keyboard {
+func (client *Client) getOnboardingKeyboard(ctx context.Context, chatID int64) (*inline.Keyboard, error) {
 	keyboard := inline.New(client.bot)
 
 	switch client.fsm.Current(chatID) {
@@ -32,37 +32,51 @@ func (client *Client) getOnboardingKeyboard(chatID int64) *inline.Keyboard {
 			Button(constants.WaterNormSelf, []byte(constants.WaterNormSelfKey), client.onWaterNormSelect).
 			Button(constants.WaterNormDefault, []byte(constants.WaterNormDefaultKey), client.onWaterNormSelect)
 	case constants.StateOnboardingWeight:
-		return nil
+		return nil, nil
 	case constants.StateOnboardingSex:
-		// get sexes from db
-		// create keyboard with sexes (2 sexes in a row)
-		keyboard.
-			Button(constants.SexMale, []byte(constants.SexMaleKey), client.onSexSelect).
-			Button(constants.SexFemale, []byte(constants.SexFemaleKey), client.onSexSelect)
-	case constants.StateOnboardingPhysicalActivity:
-		// get physical activities from db
-		// create keyboard with physical activities (5 physical activities in a row)
-		keyboard.
-			Button(constants.PhysicalActivityLow, []byte(constants.PhysicalActivityLowKey), client.onPhysicalActivitySelect).
-			Button(constants.PhysicalActivityModerate, []byte(constants.PhysicalActivityModerateKey), client.onPhysicalActivitySelect).
-			Button(constants.PhysicalActivityHigh, []byte(constants.PhysicalActivityHighKey), client.onPhysicalActivitySelect)
-	case constants.StateOnboardingClimate:
-		// get climates from db
-		// create keyboard with climates (5 climates in a row)
-		keyboard.
-			Button(constants.ClimateCold, []byte(constants.ClimateColdKey), client.onClimateSelect).
-			Button(constants.ClimateTemperate, []byte(constants.ClimateTemperateKey), client.onClimateSelect).
-			Button(constants.ClimateWarm, []byte(constants.ClimateWarmKey), client.onClimateSelect).
-			Button(constants.ClimateHot, []byte(constants.ClimateHotKey), client.onClimateSelect)
-	case constants.StateOnboardingTimezone:
-		keyboard.
-			Button("test", []byte("test"), client.onTimezoneSelect)
-		// get timezones from db
-		// create keyboard with timezones (5 timezones in a row)
+		list, err := client.refProvider.SexList(ctx)
+		if err != nil {
+			return nil, err
+		}
 
+		for _, item := range list {
+			keyboard.Button(item.Name, []byte{item.ID}, client.onSexSelect)
+		}
+	case constants.StateOnboardingPhysicalActivity:
+		list, err := client.refProvider.PhysicalActivityList(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range list {
+			keyboard.Button(item.Name, []byte{item.ID}, client.onPhysicalActivitySelect)
+		}
+	case constants.StateOnboardingClimate:
+		list, err := client.refProvider.ClimateList(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range list {
+			keyboard.Button(item.Name, []byte{item.ID}, client.onClimateSelect)
+		}
+	case constants.StateOnboardingTimezone:
+		// TODO: передалеть, чтобы можно было выводить текст таблицу в сообщении
+		// Придумать универсальный вариант
+		list, err := client.refProvider.TimezoneList(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for i, item := range list {
+			keyboard.Button(item.Name, []byte{item.ID}, client.onTimezoneSelect)
+			if i%5 == 0 {
+				keyboard.Row()
+			}
+		}
 	}
 
-	return keyboard
+	return keyboard, nil
 }
 
 // startOnboarding starts the onboarding process
@@ -79,7 +93,11 @@ func (client *Client) startOnboarding(ctx context.Context, _ *bot.Bot, update *m
 	client.sendMessage(ctx, chatID, constants.BenifitOfWater)
 	client.sendMessage(ctx, chatID, constants.StandardNorm)
 	client.fsm.Transition(chatID, constants.StateOnboardingWaterNorm, chatID)
-	keyboard := client.getOnboardingKeyboard(chatID)
+	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
+	if err != nil {
+		logger.Get("tgbot", "client.startOnboarding").Error("failed to get keyboard", "error", err.Error())
+		return
+	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.WaterNormQuestion, keyboard)
 }
 
@@ -147,7 +165,11 @@ func (client *Client) onboardingWeightHandler(ctx context.Context, _ *bot.Bot, u
 func (client *Client) sexSelectHandler(ctx context.Context, _ *bot.Bot, update *models.Update) {
 	chatID := update.Message.Chat.ID
 	client.fsm.Transition(chatID, constants.StateOnboardingSex, chatID)
-	keyboard := client.getOnboardingKeyboard(chatID)
+	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
+	if err != nil {
+		logger.Get("tgbot", "client.sexSelectHandler").Error("failed to get keyboard", "error", err.Error())
+		return
+	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.SexQuestion, keyboard)
 }
 
@@ -160,14 +182,19 @@ func (client *Client) onSexSelect(ctx context.Context, _ *bot.Bot, mes models.Ma
 		return
 	}
 
-	err := client.userService.SaveUserParam(ctx, chatID, constants.SexKey, string(data))
+	sexID := data[0]
+	err := client.userService.SaveUserParam(ctx, chatID, constants.SexKey, sexID)
 	if err != nil {
 		logger.Get("tgbot", "client.onSexSelect").Error("failed to save user data", "error", err.Error())
 		return
 	}
 
 	client.fsm.Transition(chatID, constants.StateOnboardingPhysicalActivity, chatID)
-	keyboard := client.getOnboardingKeyboard(chatID)
+	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
+	if err != nil {
+		logger.Get("tgbot", "client.onSexSelect").Error("failed to get keyboard", "error", err.Error())
+		return
+	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.PhysicalActivityQuestion, keyboard)
 }
 
@@ -180,14 +207,19 @@ func (client *Client) onPhysicalActivitySelect(ctx context.Context, _ *bot.Bot, 
 		return
 	}
 
-	err := client.userService.SaveUserParam(ctx, chatID, constants.PhysicalActivityKey, string(data))
+	physicalActivityID := data[0]
+	err := client.userService.SaveUserParam(ctx, chatID, constants.PhysicalActivityKey, physicalActivityID)
 	if err != nil {
 		logger.Get("tgbot", "client.onPhysicalActivitySelect").Error("failed to save user data", "error", err.Error())
 		return
 	}
 
 	client.fsm.Transition(chatID, constants.StateOnboardingClimate, chatID)
-	keyboard := client.getOnboardingKeyboard(chatID)
+	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
+	if err != nil {
+		logger.Get("tgbot", "client.onPhysicalActivitySelect").Error("failed to get keyboard", "error", err.Error())
+		return
+	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.ClimateQuestion, keyboard)
 }
 
@@ -200,14 +232,19 @@ func (client *Client) onClimateSelect(ctx context.Context, _ *bot.Bot, mes model
 		return
 	}
 
-	err := client.userService.SaveUserParam(ctx, chatID, constants.ClimateKey, string(data))
+	climateID := data[0]
+	err := client.userService.SaveUserParam(ctx, chatID, constants.ClimateKey, climateID)
 	if err != nil {
 		logger.Get("tgbot", "client.onClimateSelect").Error("failed to save user data", "error", err.Error())
 		return
 	}
 
 	client.fsm.Transition(chatID, constants.StateOnboardingTimezone, chatID)
-	keyboard := client.getOnboardingKeyboard(chatID)
+	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
+	if err != nil {
+		logger.Get("tgbot", "client.onClimateSelect").Error("failed to get keyboard", "error", err.Error())
+		return
+	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.TimezoneQuestion, keyboard)
 }
 
@@ -219,7 +256,8 @@ func (client *Client) onTimezoneSelect(ctx context.Context, _ *bot.Bot, mes mode
 		return
 	}
 
-	err := client.userService.SaveUserParam(ctx, chatID, constants.TimezoneKey, string(data))
+	timezoneID := data[0]
+	err := client.userService.SaveUserParam(ctx, chatID, constants.TimezoneKey, timezoneID)
 	if err != nil {
 		logger.Get("tgbot", "client.onTimezoneSelect").Error("failed to save user data", "error", err.Error())
 		return
