@@ -41,6 +41,9 @@ migration-down:
 docker:
 	mkdir -p -m 777 logs
 	docker compose down
+	docker compose up -d --build
+	
+docker-clear:
+	docker compose down
+	docker volume rm -f $(shell docker volume ls -q)
 	docker system prune -f
-	docker compose build --progress plain &> logs/build.log
-	docker compose up -d

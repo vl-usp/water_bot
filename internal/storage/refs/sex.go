@@ -2,6 +2,7 @@ package refs
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/vl-usp/water_bot/internal/model"
@@ -19,23 +20,23 @@ func (s *store) SexList(ctx context.Context) ([]model.Sex, error) {
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build sex list query: %w", err)
 	}
 
 	q := db.Query{
-		Name:     "user_repository.SexList",
+		Name:     "refs_storage.SexList",
 		QueryRaw: query,
 	}
 
 	sexList := make([]repoModel.Sex, 0)
 	err = s.db.DB().ScanAllContext(ctx, &sexList, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get sex list: %w", err)
 	}
 
 	sexListModels := make([]model.Sex, 0, len(sexList))
 	for _, sex := range sexList {
-		sexListModels = append(sexListModels, converter.ToSexFromRepo(sex))
+		sexListModels = append(sexListModels, *converter.ToSexFromStorage(sex))
 	}
 
 	return sexListModels, nil

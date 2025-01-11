@@ -4,7 +4,7 @@ create table if not exists ref_timezone (
 	id serial primary key,
 	name text,
 	cities text,
-    utc_offset int
+    utc_offset smallint
 );
 
 INSERT INTO ref_timezone (name, cities, utc_offset) VALUES

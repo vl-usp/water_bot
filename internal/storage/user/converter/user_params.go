@@ -7,23 +7,31 @@ import (
 	storageModel "github.com/vl-usp/water_bot/internal/storage/user/model"
 )
 
-// ToUserParamsFromRepo converts a database representation of user params to a model.UserParams.
-func ToUserParamsFromRepo(
+// ToUserParamsFromStorage converts a database representation of user params to a model.UserParams.
+func ToUserParamsFromStorage(
 	params storageModel.UserParams,
 	sex storageRefsModel.Sex,
 	physicalActivity storageRefsModel.PhysicalActivity,
 	climate storageRefsModel.Climate,
 	timezone storageRefsModel.Timezone,
-) model.UserParams {
-	return model.UserParams{
+) *model.UserParams {
+	res := &model.UserParams{
 		ID:               params.ID,
-		Sex:              refsConverter.ToSexFromRepo(sex),
-		PhysicalActivity: refsConverter.ToPhysicalActivityFromRepo(physicalActivity),
-		Climate:          refsConverter.ToClimateFromRepo(climate),
-		Timezone:         refsConverter.ToTimezoneFromRepo(timezone),
-		Weight:           params.Weight,
+		Sex:              refsConverter.ToSexFromStorage(sex),
+		PhysicalActivity: refsConverter.ToPhysicalActivityFromStorage(physicalActivity),
+		Climate:          refsConverter.ToClimateFromStorage(climate),
+		Timezone:         refsConverter.ToTimezoneFromStorage(timezone),
 		WaterGoal:        params.WaterGoal,
-		CreatedAt:        params.CreatedAt.Time,
-		UpdatedAt:        params.UpdatedAt.Time,
+		CreatedAt:        params.CreatedAt,
 	}
+
+	if params.Weight.Valid {
+		res.Weight = &params.Weight.Byte
+	}
+
+	if params.UpdatedAt.Valid {
+		res.UpdatedAt = &params.UpdatedAt.Time
+	}
+
+	return res
 }

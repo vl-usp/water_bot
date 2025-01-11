@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/brianvoe/gofakeit/v7"
+)
 
 // User is a model of a user.
 type User struct {
@@ -9,19 +13,17 @@ type User struct {
 	LastName     string
 	Username     string
 	LanguageCode string
-	Params       UserParams
+	Params       *UserParams
 	CreatedAt    time.Time
 }
 
-// UserParams is a part of user model.
-type UserParams struct {
-	ID               int64
-	Sex              Sex
-	PhysicalActivity PhysicalActivity
-	Climate          Climate
-	Timezone         Timezone
-	Weight           byte
-	WaterGoal        int
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+func FakeUser() *User {
+	return &User{
+		ID:           gofakeit.Int64(),
+		FirstName:    gofakeit.FirstName(),
+		LastName:     gofakeit.LastName(),
+		Username:     gofakeit.Username(),
+		LanguageCode: gofakeit.LanguageAbbreviation(),
+		CreatedAt:    gofakeit.Date(),
+	}
 }

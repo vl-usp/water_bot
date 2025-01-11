@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 create table if not exists user_params (
-	id serial primary key,
+	id bigserial primary key,
 	sex_id smallint,
 	physical_activity_id smallint,
 	climate_id smallint,

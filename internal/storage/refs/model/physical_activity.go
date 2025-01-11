@@ -1,9 +1,11 @@
 package model
 
+import "database/sql"
+
 // PhysicalActivity is a database representation of physical activity
 type PhysicalActivity struct {
-	ID        byte    `db:"id"`
-	Key       string  `db:"key"`
-	Name      string  `db:"name"`
-	WaterCoef float64 `db:"water_coef"`
+	ID        sql.NullByte    `db:"id"`
+	Key       sql.NullString  `db:"key"`
+	Name      sql.NullString  `db:"name"`
+	WaterCoef sql.NullFloat64 `db:"water_coef"`
 }

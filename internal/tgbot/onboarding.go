@@ -70,7 +70,7 @@ func (client *Client) getOnboardingKeyboard(ctx context.Context, chatID int64) (
 
 		for i, item := range list {
 			keyboard.Button(item.Name, []byte{item.ID}, client.onTimezoneSelect)
-			if i%5 == 0 {
+			if (i+1)%5 == 0 {
 				keyboard.Row()
 			}
 		}
@@ -83,7 +83,6 @@ func (client *Client) getOnboardingKeyboard(ctx context.Context, chatID int64) (
 // It's sends two messages (benifit of water and standard norm)
 // then it suggests the user to answer the water norm question
 // and transitions to the water norm state.
-// Next see onWaterNormSelect function
 //
 // Flow: startOnboarding -> onWaterNormSelect -> callbackAskWeight -> onboardingWeightHandler (client.inputHandler)
 // -> sexSelectHandler -> onSexSelect -> onPhysicalActivitySelect -> onClimateSelect -> onTimezoneSelect
@@ -96,6 +95,7 @@ func (client *Client) startOnboarding(ctx context.Context, _ *bot.Bot, update *m
 	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
 	if err != nil {
 		logger.Get("tgbot", "client.startOnboarding").Error("failed to get keyboard", "error", err.Error())
+		client.sendErrorMessage(ctx, update.Message.Chat.ID, constants.DefaultErrorMessage)
 		return
 	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.WaterNormQuestion, keyboard)
@@ -109,6 +109,7 @@ func (client *Client) onWaterNormSelect(ctx context.Context, _ *bot.Bot, mes mod
 	chatID := mes.Message.Chat.ID
 	if client.fsm.Current(chatID) != constants.StateOnboardingWaterNorm {
 		logger.Get("tgbot", "client.onWaterNormSelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
@@ -119,10 +120,18 @@ func (client *Client) onWaterNormSelect(ctx context.Context, _ *bot.Bot, mes mod
 		err := client.userService.SaveUserParam(ctx, chatID, constants.WaterGoalKey, constants.WaterGoalDefault)
 		if err != nil {
 			logger.Get("tgbot", "client.onWaterNormSelect").Error("failed to save user data", "error", err.Error())
+			client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 			return
 		}
 
 		client.fsm.Transition(chatID, constants.StateOnboardingTimezone, chatID)
+		keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
+		if err != nil {
+			logger.Get("tgbot", "client.onWaterNormSelect").Error("failed to get keyboard", "error", err.Error())
+			client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
+			return
+		}
+		client.sendMessageWithKeyboard(ctx, chatID, constants.TimezoneKey, keyboard)
 	}
 }
 
@@ -138,6 +147,7 @@ func (client *Client) onboardingWeightHandler(ctx context.Context, _ *bot.Bot, u
 	chatID := update.Message.Chat.ID
 	if client.fsm.Current(chatID) != constants.StateOnboardingWeight {
 		logger.Get("tgbot", "client.onboardingWeightHandler").Error("unexpected state", "state", client.fsm.Current(chatID))
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
@@ -154,7 +164,8 @@ func (client *Client) onboardingWeightHandler(ctx context.Context, _ *bot.Bot, u
 	// Store the weight to cache
 	err := client.userService.SaveUserParam(ctx, chatID, constants.WeightKey, weight)
 	if err != nil {
-		logger.Get("tgbot", "client.defaultHandler").Error("failed to save weight", "error", err.Error())
+		logger.Get("tgbot", "client.defaultHandler").Error("failed to save user param", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
@@ -168,6 +179,7 @@ func (client *Client) sexSelectHandler(ctx context.Context, _ *bot.Bot, update *
 	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
 	if err != nil {
 		logger.Get("tgbot", "client.sexSelectHandler").Error("failed to get keyboard", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.SexQuestion, keyboard)
@@ -178,14 +190,16 @@ func (client *Client) sexSelectHandler(ctx context.Context, _ *bot.Bot, update *
 func (client *Client) onSexSelect(ctx context.Context, _ *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 	chatID := mes.Message.Chat.ID
 	if client.fsm.Current(chatID) != constants.StateOnboardingSex {
-		logger.Get("tgbot", "client.onWaterNormSelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+		logger.Get("tgbot", "client.onSexSelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
 	sexID := data[0]
 	err := client.userService.SaveUserParam(ctx, chatID, constants.SexKey, sexID)
 	if err != nil {
-		logger.Get("tgbot", "client.onSexSelect").Error("failed to save user data", "error", err.Error())
+		logger.Get("tgbot", "client.onSexSelect").Error("failed to save user param", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
@@ -193,6 +207,7 @@ func (client *Client) onSexSelect(ctx context.Context, _ *bot.Bot, mes models.Ma
 	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
 	if err != nil {
 		logger.Get("tgbot", "client.onSexSelect").Error("failed to get keyboard", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.PhysicalActivityQuestion, keyboard)
@@ -204,13 +219,15 @@ func (client *Client) onPhysicalActivitySelect(ctx context.Context, _ *bot.Bot, 
 	chatID := mes.Message.Chat.ID
 	if client.fsm.Current(chatID) != constants.StateOnboardingPhysicalActivity {
 		logger.Get("tgbot", "client.onPhysicalActivitySelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
 	physicalActivityID := data[0]
 	err := client.userService.SaveUserParam(ctx, chatID, constants.PhysicalActivityKey, physicalActivityID)
 	if err != nil {
-		logger.Get("tgbot", "client.onPhysicalActivitySelect").Error("failed to save user data", "error", err.Error())
+		logger.Get("tgbot", "client.onPhysicalActivitySelect").Error("failed to save user param", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
@@ -218,6 +235,7 @@ func (client *Client) onPhysicalActivitySelect(ctx context.Context, _ *bot.Bot, 
 	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
 	if err != nil {
 		logger.Get("tgbot", "client.onPhysicalActivitySelect").Error("failed to get keyboard", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.ClimateQuestion, keyboard)
@@ -228,14 +246,16 @@ func (client *Client) onPhysicalActivitySelect(ctx context.Context, _ *bot.Bot, 
 func (client *Client) onClimateSelect(ctx context.Context, _ *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 	chatID := mes.Message.Chat.ID
 	if client.fsm.Current(chatID) != constants.StateOnboardingClimate {
-		logger.Get("tgbot", "client.onWaterNormSelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+		logger.Get("tgbot", "client.onClimateSelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
 	climateID := data[0]
 	err := client.userService.SaveUserParam(ctx, chatID, constants.ClimateKey, climateID)
 	if err != nil {
-		logger.Get("tgbot", "client.onClimateSelect").Error("failed to save user data", "error", err.Error())
+		logger.Get("tgbot", "client.onClimateSelect").Error("failed to save user param", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
@@ -243,6 +263,7 @@ func (client *Client) onClimateSelect(ctx context.Context, _ *bot.Bot, mes model
 	keyboard, err := client.getOnboardingKeyboard(ctx, chatID)
 	if err != nil {
 		logger.Get("tgbot", "client.onClimateSelect").Error("failed to get keyboard", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 	client.sendMessageWithKeyboard(ctx, chatID, constants.TimezoneQuestion, keyboard)
@@ -251,30 +272,34 @@ func (client *Client) onClimateSelect(ctx context.Context, _ *bot.Bot, mes model
 // onTimezoneSelect handles the timezone selection.
 func (client *Client) onTimezoneSelect(ctx context.Context, _ *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 	chatID := mes.Message.Chat.ID
-	if client.fsm.Current(chatID) != constants.StateOnboardingClimate {
-		logger.Get("tgbot", "client.onWaterNormSelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+	if client.fsm.Current(chatID) != constants.StateOnboardingTimezone {
+		logger.Get("tgbot", "client.onTimezoneSelect").Error("unexpected state", "state", client.fsm.Current(chatID))
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
 	timezoneID := data[0]
 	err := client.userService.SaveUserParam(ctx, chatID, constants.TimezoneKey, timezoneID)
 	if err != nil {
-		logger.Get("tgbot", "client.onTimezoneSelect").Error("failed to save user data", "error", err.Error())
+		logger.Get("tgbot", "client.onTimezoneSelect").Error("failed to save user param", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
-	client.fsm.Transition(chatID, constants.StateDefault, chatID)
 
 	// save user to database
 	err = client.userService.UpdateUserFromCache(ctx, chatID)
 	if err != nil {
-		logger.Get("tgbot", "client.saveUser").Error("failed to create user data", "error", err.Error())
+		logger.Get("tgbot", "client.onTimezoneSelect").Error("failed to update user from cache", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
 
-	user, err := client.userService.GetUser(ctx, chatID)
+	user, err := client.userService.GetFullUser(ctx, chatID)
 	if err != nil {
-		logger.Get("tgbot", "client.saveUser").Error("failed to create user data", "error", err.Error())
+		logger.Get("tgbot", "client.onTimezoneSelect").Error("failed to get user", "error", err.Error())
+		client.sendErrorMessage(ctx, chatID, constants.DefaultErrorMessage)
 		return
 	}
+	client.fsm.Transition(chatID, constants.StateDefault, chatID)
 	client.sendMessage(ctx, chatID, fmt.Sprintf(constants.WaterNormResult, user.Params.WaterGoal))
 }

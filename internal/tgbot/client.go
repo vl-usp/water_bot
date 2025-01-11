@@ -12,9 +12,10 @@ import (
 
 // UserService provide user data.
 type UserService interface {
-	CreateUser(ctx context.Context, user model.User) (int64, error)
+	CreateUser(ctx context.Context, user model.User) error
 	UpdateUserFromCache(ctx context.Context, userID int64) error
 	GetUser(ctx context.Context, userID int64) (*model.User, error)
+	GetFullUser(ctx context.Context, userID int64) (*model.User, error)
 	SaveUserParam(ctx context.Context, userID int64, field string, value interface{}) error
 }
 
@@ -82,6 +83,17 @@ func (client *Client) sendMessageWithKeyboard(ctx context.Context, chatID int64,
 	})
 	if err != nil {
 		logger.Get("tgbot", "client.sendMessageWithKeyboard").Error("failed to send message", "error", err.Error())
+		return
+	}
+}
+
+func (client *Client) sendErrorMessage(ctx context.Context, chatID int64, text string) {
+	_, err := client.bot.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text:   text,
+	})
+	if err != nil {
+		logger.Get("tgbot", "client.sendErrorMessage").Error("failed to send message", "error", err.Error())
 		return
 	}
 }

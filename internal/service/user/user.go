@@ -8,30 +8,29 @@ import (
 )
 
 // CreateUser creates a new user.
-func (s *serv) CreateUser(ctx context.Context, user model.User) (int64, error) {
-	var id int64
-
+func (s *serv) CreateUser(ctx context.Context, user model.User) error {
 	err := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
 		var errTx error
-		id, errTx = s.userStore.CreateUser(ctx, user)
+		errTx = s.userStore.CreateUser(ctx, user)
 		if errTx != nil {
 			return errTx
 		}
 
-		_, errTx = s.userStore.GetUser(ctx, id)
+		_, errTx = s.userStore.GetUser(ctx, user.ID)
 		return errTx
 	})
 
-	if err != nil {
-		return 0, err
-	}
-
-	return id, err
+	return err
 }
 
 // GetUser returns a user by id.
 func (s *serv) GetUser(ctx context.Context, userID int64) (*model.User, error) {
 	return s.userStore.GetUser(ctx, userID)
+}
+
+// GetFullUser returns a user by id with all params.
+func (s *serv) GetFullUser(ctx context.Context, userID int64) (*model.User, error) {
+	return s.userStore.GetFullUser(ctx, userID)
 }
 
 // SaveUserParam saves UserParam to cache.
@@ -41,37 +40,86 @@ func (s *serv) SaveUserParam(ctx context.Context, userID int64, field string, va
 
 // UpdateUserFromCache gets UserParams from cache, gets User from db and update user
 func (s *serv) UpdateUserFromCache(ctx context.Context, userID int64) error {
-	params, err := s.userCache.GetUserParams(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	// calc waterGoal if needed
-	if params.WaterGoal == 0 {
-		params, err = s.userStore.GetFullUserParams(ctx, *params)
-		if err != nil {
-			return err
-		}
-
-		goal := constants.WaterGoalDefault + float64(params.Weight)*params.Sex.WaterCoef*params.PhysicalActivity.WaterCoef*params.Climate.WaterCoef
-		params.WaterGoal = int(goal)
-	}
-
-	err = s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
+	return s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
 		var errTx error
-		paramsID, errTx := s.userStore.CreateUserParams(ctx, *params)
-		if errTx != nil {
-			return errTx
-		}
 
 		user, errTx := s.userStore.GetUser(ctx, userID)
 		if errTx != nil {
 			return errTx
 		}
 
-		user.Params.ID = paramsID
-		errTx = s.userStore.UpdateUser(ctx, userID, *user)
-		return errTx
+		cacheParams, err := s.userCache.GetUserParams(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		if user.Params != nil {
+			dbParams, errTx := s.userStore.GetUserParams(ctx, user.Params.ID)
+			if errTx != nil {
+				return errTx
+			}
+			params := s.mergeUserParams(*dbParams, *cacheParams)
+			errTx = s.userStore.UpdateUserParams(ctx, user.Params.ID, params)
+			if errTx != nil {
+				return errTx
+			}
+			return nil
+		}
+
+		fullParams, errTx := s.userStore.FillUserParams(ctx, *cacheParams)
+		if errTx != nil {
+			return errTx
+		}
+		fullParams.WaterGoal = s.calcWaterGoal(*fullParams)
+		paramsID, errTx := s.userStore.CreateUserParams(ctx, *fullParams)
+		if errTx != nil {
+			return errTx
+		}
+
+		user.Params = &model.UserParams{
+			ID: paramsID,
+		}
+		return s.userStore.UpdateUser(ctx, userID, *user)
 	})
-	return err
+}
+
+func (s *serv) calcWaterGoal(params model.UserParams) uint16 {
+	if params.WaterGoal != 0 {
+		return params.WaterGoal
+	}
+
+	if params.Weight == nil {
+		return uint16(constants.WaterGoalDefault)
+	}
+
+	goal := constants.WaterGoalDefault + float64(*params.Weight)*params.Sex.WaterCoef*params.PhysicalActivity.WaterCoef*params.Climate.WaterCoef
+	return uint16(goal)
+}
+
+func (s *serv) mergeUserParams(params1 model.UserParams, params2 model.UserParams) model.UserParams {
+	if params2.Sex != nil {
+		params1.Sex = params2.Sex
+	}
+
+	if params2.PhysicalActivity != nil {
+		params1.PhysicalActivity = params2.PhysicalActivity
+	}
+
+	if params2.Climate != nil {
+		params1.Climate = params2.Climate
+	}
+
+	if params2.Timezone != nil {
+		params1.Timezone = params2.Timezone
+	}
+
+	if params2.Weight != nil {
+		params1.Weight = params2.Weight
+	}
+
+	if params2.WaterGoal != 0 {
+		params1.WaterGoal = s.calcWaterGoal(params2)
+	}
+
+	return params1
 }

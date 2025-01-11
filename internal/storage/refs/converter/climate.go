@@ -5,12 +5,16 @@ import (
 	storageModel "github.com/vl-usp/water_bot/internal/storage/refs/model"
 )
 
-// ToClimateFromRepo converts a database representation of climate to model.Climate
-func ToClimateFromRepo(r storageModel.Climate) model.Climate {
-	return model.Climate{
-		ID:        r.ID,
-		Key:       r.Key,
-		Name:      r.Name,
-		WaterCoef: r.WaterCoef,
+// ToClimateFromStorage converts a database representation of climate to model.Climate
+func ToClimateFromStorage(from storageModel.Climate) *model.Climate {
+	if !from.ID.Valid {
+		return nil
+	}
+
+	return &model.Climate{
+		ID:        from.ID.Byte,
+		Key:       from.Key.String,
+		Name:      from.Name.String,
+		WaterCoef: from.WaterCoef.Float64,
 	}
 }

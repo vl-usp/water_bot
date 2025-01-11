@@ -1,16 +1,19 @@
 package model
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 // UserParams is a model of user params for the database.
 type UserParams struct {
 	ID                 int64        `db:"id"`
-	SexID              byte         `db:"sex_id"`
-	PhysicalActivityID byte         `db:"physical_activity_id"`
-	ClimateID          byte         `db:"climate_id"`
-	TimezoneID         byte         `db:"timezone_id"`
-	Weight             byte         `db:"weight"`
-	WaterGoal          int          `db:"water_goal"`
-	CreatedAt          sql.NullTime `db:"created_at"`
+	SexID              sql.NullByte `db:"sex_id"`
+	PhysicalActivityID sql.NullByte `db:"physical_activity_id"`
+	ClimateID          sql.NullByte `db:"climate_id"`
+	TimezoneID         sql.NullByte `db:"timezone_id"`
+	Weight             sql.NullByte `db:"weight"`
+	WaterGoal          uint16       `db:"water_goal"`
+	CreatedAt          time.Time    `db:"created_at"`
 	UpdatedAt          sql.NullTime `db:"updated_at"`
 }

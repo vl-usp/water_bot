@@ -5,12 +5,16 @@ import (
 	storageModel "github.com/vl-usp/water_bot/internal/storage/refs/model"
 )
 
-// ToSexFromRepo converts a database representation of sex to model.Sex
-func ToSexFromRepo(r storageModel.Sex) model.Sex {
-	return model.Sex{
-		ID:        r.ID,
-		Key:       r.Key,
-		Name:      r.Name,
-		WaterCoef: r.WaterCoef,
+// ToSexFromStorage converts a database representation of sex to model.Sex
+func ToSexFromStorage(from storageModel.Sex) *model.Sex {
+	if !from.ID.Valid {
+		return nil
+	}
+
+	return &model.Sex{
+		ID:        from.ID.Byte,
+		Key:       from.Key.String,
+		Name:      from.Name.String,
+		WaterCoef: from.WaterCoef.Float64,
 	}
 }

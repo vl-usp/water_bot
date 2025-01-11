@@ -1,9 +1,22 @@
 package model
 
+import (
+	"github.com/brianvoe/gofakeit/v7"
+)
+
 // Timezone is a model that represents timezone
 type Timezone struct {
 	ID        byte
 	Name      string
 	Cities    string
-	UTCOffset int
+	UTCOffset int16
+}
+
+func FakeTimezone() *Timezone {
+	return &Timezone{
+		ID:        gofakeit.Uint8(),
+		Name:      gofakeit.Word(),
+		Cities:    gofakeit.Word(),
+		UTCOffset: gofakeit.Int16(),
+	}
 }

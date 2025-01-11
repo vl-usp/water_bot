@@ -2,6 +2,7 @@ package user_cache
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -19,7 +20,7 @@ func (s *store) SaveUserParam(ctx context.Context, userID int64, field string, v
 	userIDString := strconv.Itoa(int(userID))
 	err := s.cache.HSetField(ctx, cachePrefix+userIDString, field, value)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to save field to cache: %w", err)
 	}
 
 	// logger.Get("repository", "r.SaveField").Debug("field saved", "userID", userID, "field", field, "value", value)
@@ -31,15 +32,17 @@ func (s *store) SaveUserParam(ctx context.Context, userID int64, field string, v
 func (s *store) GetUserParams(ctx context.Context, userID int64) (*model.UserParams, error) {
 	data, err := s.cache.HGetAll(ctx, cachePrefix+strconv.Itoa(int(userID)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get user data from cache: %w", err)
 	}
+
+	// logger.Get("repository", "r.GetFromCache").Debug("user data from cache", "userID", userID, "data", data)
 
 	userData, err := converter.ToUserParamsFromCache(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to convert user data from cache: %w", err)
 	}
 
-	// logger.Get("repository", "r.GetFromCache").Debug("user data from cache", "userID", userID, "userData", userData)
+	// logger.Get("repository", "r.GetFromCache").Debug("converted user data from cache", "userID", userID, "userData", userData)
 
 	return userData, nil
 }

@@ -29,10 +29,12 @@ func (client *Client) inputHandler(ctx context.Context, b *bot.Bot, update *mode
 }
 
 func (client *Client) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	_, err := client.userService.CreateUser(ctx, *converter.ToUserFromTGUser(update.Message.From))
+	err := client.userService.CreateUser(ctx, converter.ToUserFromTGUser(*update.Message.From))
 	if err != nil {
 		if !errors.IsUniqueViolation(err) {
 			logger.Get("tgbot", "tgbot.startHandler").Error("failed to create user", "error", err.Error())
+			client.sendErrorMessage(ctx, update.Message.Chat.ID, constants.DefaultErrorMessage)
+			return
 		}
 	}
 	client.startOnboarding(ctx, b, update)

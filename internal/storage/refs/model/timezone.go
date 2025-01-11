@@ -1,9 +1,11 @@
 package model
 
+import "database/sql"
+
 // Timezone is a database representation of timezone
 type Timezone struct {
-	ID        byte   `db:"id"`
-	Name      string `db:"name"`
-	Cities    string `db:"cities"`
-	UTCOffset int    `db:"utc_offset"`
+	ID        sql.NullByte   `db:"id"`
+	Name      sql.NullString `db:"name"`
+	Cities    sql.NullString `db:"cities"`
+	UTCOffset sql.NullInt16  `db:"utc_offset"`
 }

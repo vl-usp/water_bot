@@ -2,6 +2,7 @@ package refs
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -21,23 +22,23 @@ func (s *store) ClimateList(ctx context.Context) ([]model.Climate, error) {
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build climate list query: %w", err)
 	}
 
 	q := db.Query{
-		Name:     "user_repository.ClimateList",
+		Name:     "refs_storage.ClimateList",
 		QueryRaw: query,
 	}
 
 	climateList := make([]repoModel.Climate, 0)
 	err = s.db.DB().ScanAllContext(ctx, &climateList, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get climate list: %w", err)
 	}
 
 	cliamteListModels := make([]model.Climate, 0, len(climateList))
 	for _, climate := range climateList {
-		cliamteListModels = append(cliamteListModels, converter.ToClimateFromRepo(climate))
+		cliamteListModels = append(cliamteListModels, *converter.ToClimateFromStorage(climate))
 	}
 
 	return cliamteListModels, nil

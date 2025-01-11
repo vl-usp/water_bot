@@ -18,28 +18,28 @@ func ToUserParamsFromCache(data map[string]string) (*model.UserParams, error) {
 			if err != nil {
 				return nil, err
 			}
-			userData.Sex.ID = byte(id)
+			userData.Sex = &model.Sex{ID: byte(id)}
 
 		case constants.PhysicalActivityKey:
 			id, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, err
 			}
-			userData.PhysicalActivity.ID = byte(id)
+			userData.PhysicalActivity = &model.PhysicalActivity{ID: byte(id)}
 
 		case constants.ClimateKey:
 			id, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, err
 			}
-			userData.Climate.ID = byte(id)
+			userData.Climate = &model.Climate{ID: byte(id)}
 
 		case constants.TimezoneKey:
 			id, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, err
 			}
-			userData.Timezone.ID = byte(id)
+			userData.Timezone = &model.Timezone{ID: byte(id)}
 
 		case constants.WeightKey:
 			weight, err := strconv.Atoi(value)
@@ -47,7 +47,8 @@ func ToUserParamsFromCache(data map[string]string) (*model.UserParams, error) {
 				return nil, err
 			}
 
-			userData.Weight = byte(weight)
+			weightByte := byte(weight)
+			userData.Weight = &weightByte
 
 		case constants.WaterGoalKey:
 			waterGoal, err := strconv.Atoi(value)
@@ -55,7 +56,7 @@ func ToUserParamsFromCache(data map[string]string) (*model.UserParams, error) {
 				return nil, err
 			}
 
-			userData.WaterGoal = waterGoal
+			userData.WaterGoal = uint16(waterGoal)
 
 		default:
 			return nil, errors.New("unknown key: " + key)

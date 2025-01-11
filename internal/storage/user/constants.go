@@ -1,7 +1,7 @@
 package user
 
 const (
-	userTable       = "user"
+	usersTable      = "users"
 	userParamsTable = "user_params"
 
 	idColumn = "id"

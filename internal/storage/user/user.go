@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -11,13 +11,13 @@ import (
 	"github.com/vl-usp/water_bot/internal/storage/user/converter"
 	storageModel "github.com/vl-usp/water_bot/internal/storage/user/model"
 	"github.com/vl-usp/water_bot/pkg/client/db"
+	"github.com/vl-usp/water_bot/pkg/logger"
 )
 
-const ()
-
 // Create creates a new user.
-func (s *store) CreateUser(ctx context.Context, user model.User) (int64, error) {
-	builder := sq.Insert(userTable).
+func (s *store) CreateUser(ctx context.Context, user model.User) error {
+	logger.Get("storage", "CreateUser").Info("creating user...", "user", user)
+	builder := sq.Insert(usersTable).
 		PlaceholderFormat(sq.Dollar).
 		Columns(
 			idColumn,
@@ -32,70 +32,100 @@ func (s *store) CreateUser(ctx context.Context, user model.User) (int64, error) 
 			user.LastName,
 			user.Username,
 			user.LanguageCode,
-		).
-		Suffix("RETURNING id")
+		)
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return 0, err
+		return fmt.Errorf("failed to build create user query: %w", err)
 	}
 
 	q := db.Query{
-		Name:     "user_repository.CreateUser",
+		Name:     "user_storage.CreateUser",
 		QueryRaw: query,
 	}
 
-	var id int64
-	err = s.db.DB().QueryRowContext(ctx, q, args...).Scan(&id)
+	_, err = s.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
-		return 0, err
+		return fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return id, nil
+	return nil
 }
 
 // UpdateUser updates a user data by user id.
-func (s *store) UpdateUser(ctx context.Context, id int64, user model.User) error {
-	builder := sq.Update(userTable).
+func (s *store) UpdateUser(ctx context.Context, userID int64, user model.User) error {
+	builder := sq.Update(usersTable).
 		PlaceholderFormat(sq.Dollar).
 		Set(firstNameColumn, user.FirstName).
 		Set(lastNameColumn, user.LastName).
 		Set(usernameColumn, user.Username).
 		Set(languageCodeColumn, user.LanguageCode).
 		Set(paramsIDColumn, user.Params.ID).
-		Set(updatedAtColumn, time.Now()).
-		Where(sq.Eq{idColumn: id})
+		Where(sq.Eq{idColumn: userID})
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build update user query: %w", err)
 	}
 
 	q := db.Query{
-		Name:     "user_repository.UpdateUser",
+		Name:     "user_storage.UpdateUser",
 		QueryRaw: query,
 	}
 
 	_, err = s.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
+func (s *store) GetUser(ctx context.Context, userID int64) (*model.User, error) {
+	builder := sq.Select(
+		idColumn,
+		firstNameColumn,
+		lastNameColumn,
+		usernameColumn,
+		languageCodeColumn,
+		paramsIDColumn,
+		createdAtColumn,
+	).
+		PlaceholderFormat(sq.Dollar).
+		From(usersTable).
+		Where(sq.Eq{idColumn: userID})
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build get user query: %w", err)
+	}
+
+	q := db.Query{
+		Name:     "user_storage.GetUser",
+		QueryRaw: query,
+	}
+
+	var user storageModel.User
+	err = s.db.DB().ScanOneContext(ctx, &user, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return converter.ToUserFromStorage(user), nil
+}
+
 // Get returns a user by id.
 // It joins user, user_params and refs tables and return full user data.
-func (s *store) GetUser(ctx context.Context, id int64) (*model.User, error) {
+func (s *store) GetFullUser(ctx context.Context, userID int64) (*model.User, error) {
 	query := `
 		select 
 			u.id, u.first_name, u.last_name, u.username, u.language_code, u.created_at,
 			up.id, up.weight, up.water_goal, up.created_at, up.updated_at,
-			s.id as sex_id, s.key, s.name, s.water_coef,
+			s.id, s.key, s.name, s.water_coef,
 			pa.id, pa.key, pa.name, pa.water_coef,
 			c.id, c.key, c.name, c.water_coef,
 			tz.id, tz.name, tz.cities, tz.utc_offset
-		from user u
+		from users u
 		left join user_params up on u.params_id = up.id
 		left join ref_sex s on up.sex_id = s.id
 		left join ref_physical_activity pa on up.physical_activity_id = pa.id
@@ -105,7 +135,7 @@ func (s *store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 	`
 
 	q := db.Query{
-		Name:     "user_repository.GetUser",
+		Name:     "user_storage.GetFullUser",
 		QueryRaw: query,
 	}
 
@@ -116,8 +146,8 @@ func (s *store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 	var climate storageRefsModel.Climate
 	var timezone storageRefsModel.Timezone
 
-	err := s.db.DB().QueryRowContext(ctx, q, id).Scan(
-		&user.ID, &user.FirstName, &user.LastName, &user.Username, &user.LanguageCode, &user.LanguageCode,
+	err := s.db.DB().QueryRowContext(ctx, q, userID).Scan(
+		&user.ID, &user.FirstName, &user.LastName, &user.Username, &user.LanguageCode, &user.CreatedAt,
 		&userParams.ID, &userParams.Weight, &userParams.WaterGoal, &userParams.CreatedAt, &userParams.UpdatedAt,
 		&sex.ID, &sex.Key, &sex.Name, &sex.WaterCoef,
 		&physicalActivity.ID, &physicalActivity.Key, &physicalActivity.Name, &physicalActivity.WaterCoef,
@@ -125,10 +155,10 @@ func (s *store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 		&timezone.ID, &timezone.Name, &timezone.Cities, &timezone.UTCOffset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to scan full user: %w", err)
 	}
 
-	res := converter.ToUserFromRepo(
+	res := converter.ToFullUserFromStorage(
 		user,
 		userParams,
 		sex,
@@ -137,5 +167,5 @@ func (s *store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 		timezone,
 	)
 
-	return &res, nil
+	return res, nil
 }

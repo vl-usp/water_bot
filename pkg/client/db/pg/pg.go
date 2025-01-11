@@ -36,10 +36,6 @@ func NewDB(dbc *pgxpool.Pool, log *slog.Logger, debugMode bool) db.DB {
 
 // ScanOneContext scans one row from the database to dest structure with tags.
 func (p *pg) ScanOneContext(ctx context.Context, dest interface{}, q db.Query, args ...interface{}) error {
-	if p.debugMode {
-		logQuery(ctx, p.log, q, args...)
-	}
-
 	row, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
 		return err
@@ -50,10 +46,6 @@ func (p *pg) ScanOneContext(ctx context.Context, dest interface{}, q db.Query, a
 
 // ScanAllContext scans all rows from the database to dest structure with tags.
 func (p *pg) ScanAllContext(ctx context.Context, dest interface{}, q db.Query, args ...interface{}) error {
-	if p.debugMode {
-		logQuery(ctx, p.log, q, args...)
-	}
-
 	rows, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
 		return err

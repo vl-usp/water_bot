@@ -2,6 +2,7 @@ package refs
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/vl-usp/water_bot/internal/model"
@@ -19,23 +20,23 @@ func (s *store) TimezoneList(ctx context.Context) ([]model.Timezone, error) {
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build timezone list query: %w", err)
 	}
 
 	q := db.Query{
-		Name:     "user_repository.TimezoneList",
+		Name:     "refs_storage.TimezoneList",
 		QueryRaw: query,
 	}
 
 	timezoneList := make([]repoModel.Timezone, 0)
 	err = s.db.DB().ScanAllContext(ctx, &timezoneList, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get timezone list: %w", err)
 	}
 
 	timezoneListModels := make([]model.Timezone, 0, len(timezoneList))
 	for _, timezone := range timezoneList {
-		timezoneListModels = append(timezoneListModels, converter.ToTimezoneFromRepo(timezone))
+		timezoneListModels = append(timezoneListModels, *converter.ToTimezoneFromStorage(timezone))
 	}
 
 	return timezoneListModels, nil

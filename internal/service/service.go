@@ -8,9 +8,10 @@ import (
 
 // User represents a user service.
 type User interface {
-	CreateUser(ctx context.Context, user model.User) (int64, error)
+	CreateUser(ctx context.Context, user model.User) error
 	UpdateUserFromCache(ctx context.Context, userID int64) error
 	GetUser(ctx context.Context, userID int64) (*model.User, error)
+	GetFullUser(ctx context.Context, userID int64) (*model.User, error)
 	SaveUserParam(ctx context.Context, userID int64, field string, value interface{}) error
 }
 

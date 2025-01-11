@@ -1,12 +1,12 @@
 -- +goose Up
 -- +goose StatementBegin
 create table if not exists users (
-	id integer primary key,
+	id bigint primary key,
 	first_name text,
 	last_name text,
 	username text not null,
 	language_code text,
-	params_id integer,
+	params_id bigint,
 	created_at timestamp not null default 'now()',
 	foreign key (params_id) references user_params(id)
 );

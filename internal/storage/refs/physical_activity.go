@@ -2,6 +2,7 @@ package refs
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/vl-usp/water_bot/internal/model"
@@ -19,23 +20,23 @@ func (s *store) PhysicalActivityList(ctx context.Context) ([]model.PhysicalActiv
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build physical activity list query: %w", err)
 	}
 
 	q := db.Query{
-		Name:     "user_repository.PhysicalActivityList",
+		Name:     "refs_storage.PhysicalActivityList",
 		QueryRaw: query,
 	}
 
 	physicalActivityList := make([]repoModel.PhysicalActivity, 0)
 	err = s.db.DB().ScanAllContext(ctx, &physicalActivityList, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get physical activity list: %w", err)
 	}
 
 	physicalActivityListModels := make([]model.PhysicalActivity, 0, len(physicalActivityList))
 	for _, physicalActivity := range physicalActivityList {
-		physicalActivityListModels = append(physicalActivityListModels, converter.ToPhysicalActivityFromRepo(physicalActivity))
+		physicalActivityListModels = append(physicalActivityListModels, *converter.ToPhysicalActivityFromStorage(physicalActivity))
 	}
 
 	return physicalActivityListModels, nil

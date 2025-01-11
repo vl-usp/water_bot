@@ -8,13 +8,15 @@ import (
 
 // User represents a repository for user tables.
 type User interface {
-	CreateUser(ctx context.Context, user model.User) (int64, error)
-	UpdateUser(ctx context.Context, id int64, user model.User) error
-	GetUser(ctx context.Context, id int64) (*model.User, error)
+	CreateUser(ctx context.Context, user model.User) error
+	UpdateUser(ctx context.Context, userID int64, user model.User) error
+	GetUser(ctx context.Context, userID int64) (*model.User, error)
+	GetFullUser(ctx context.Context, userID int64) (*model.User, error)
 
 	CreateUserParams(ctx context.Context, params model.UserParams) (int64, error)
-	UpdateUserParams(ctx context.Context, id int64, params model.UserParams) error
-	GetFullUserParams(ctx context.Context, params model.UserParams) (*model.UserParams, error)
+	UpdateUserParams(ctx context.Context, paramsID int64, params model.UserParams) error
+	GetUserParams(ctx context.Context, paramsID int64) (*model.UserParams, error)
+	FillUserParams(ctx context.Context, params model.UserParams) (*model.UserParams, error)
 }
 
 // Reference represents a repository for user ref tables.
