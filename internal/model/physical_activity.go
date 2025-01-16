@@ -12,6 +12,7 @@ type PhysicalActivity struct {
 	WaterCoef float64
 }
 
+// FakePhysicalActivity returns a fake physical activity
 func FakePhysicalActivity() *PhysicalActivity {
 	return &PhysicalActivity{
 		ID:        gofakeit.Uint8(),

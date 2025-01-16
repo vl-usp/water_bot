@@ -12,6 +12,7 @@ type Sex struct {
 	WaterCoef float64
 }
 
+// FakeSex returns a fake sex
 func FakeSex() *Sex {
 	return &Sex{
 		ID:        gofakeit.Uint8(),

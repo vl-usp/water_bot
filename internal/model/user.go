@@ -17,6 +17,7 @@ type User struct {
 	CreatedAt    time.Time
 }
 
+// FakeUser returns a fake user.
 func FakeUser() *User {
 	return &User{
 		ID:           gofakeit.Int64(),

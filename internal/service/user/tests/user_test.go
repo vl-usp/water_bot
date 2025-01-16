@@ -19,86 +19,66 @@ import (
 // TestCreateUser tests the CreateUser function of the user service
 func TestCreateUser(t *testing.T) {
 	t.Parallel()
-	type txManagerMockFunc func(mc *minimock.Controller) db.TxManager
-	type userStorerMockFunc func(mc *minimock.Controller) userService.Storer
 
-	type args struct {
-		ctx context.Context
-		req model.User
+	type input struct {
+		ctx  context.Context
+		user model.User
 	}
 
-	var (
-		ctx = context.Background()
-		mc  = minimock.NewController(t)
+	type output struct {
+		err error
+	}
 
-		id        = gofakeit.Int64()
-		firstName = gofakeit.FirstName()
-		lastName  = gofakeit.LastName()
-		username  = gofakeit.Username()
-		langCode  = "ru"
-		createdAt = gofakeit.Date()
+	ctx := context.Background()
+	mc := minimock.NewController(t)
 
-		storageErr = fmt.Errorf("storage error")
-
-		req = model.User{
-			ID:           id,
-			FirstName:    firstName,
-			LastName:     lastName,
-			Username:     username,
-			LanguageCode: langCode,
-			CreatedAt:    createdAt,
-		}
-	)
+	user := *model.FakeUser()
+	storageError := fmt.Errorf("storage error")
 
 	tests := []struct {
-		name           string
-		args           args
-		want           int64
-		err            error
-		txManagerMock  txManagerMockFunc
-		userStorerMock userStorerMockFunc
+		name               string
+		in                 input
+		out                output
+		userStorerMockFunc func(mc *minimock.Controller) userService.Storer
 	}{
 		{
 			name: "success case",
-			args: args{
-				ctx: ctx,
-				req: req,
+			in: input{
+				ctx:  ctx,
+				user: user,
 			},
-			want: id,
-			err:  nil,
-			txManagerMock: func(mc *minimock.Controller) db.TxManager {
-				mock := dbMocks.NewTxManagerMock(mc)
-				return mock.ReadCommittedMock.Set(func(ctx context.Context, fn db.Handler) error {
-					return fn(ctx)
-				})
+			out: output{
+				err: nil,
 			},
-			userStorerMock: func(mc *minimock.Controller) userService.Storer {
+			userStorerMockFunc: func(mc *minimock.Controller) userService.Storer {
 				mock := storageMocks.NewUserMock(mc)
-				mock.CreateUserMock.Expect(ctx, req).Return(nil)
-				mock.GetUserMock.Expect(ctx, id).Return(&req, nil)
+				mock.CreateUserMock.Expect(ctx, user).Return(nil)
+				mock.GetUserMock.Expect(ctx, user.ID).Return(&user, nil)
 				return mock
 			},
 		},
 		{
 			name: "service error case",
-			args: args{
-				ctx: ctx,
-				req: req,
+			in: input{
+				ctx:  ctx,
+				user: user,
 			},
-			want: 0,
-			err:  storageErr,
-			txManagerMock: func(mc *minimock.Controller) db.TxManager {
-				mock := dbMocks.NewTxManagerMock(mc)
-				return mock.ReadCommittedMock.Set(func(ctx context.Context, fn db.Handler) error {
-					return fn(ctx)
-				})
+			out: output{
+				err: storageError,
 			},
-			userStorerMock: func(mc *minimock.Controller) userService.Storer {
+			userStorerMockFunc: func(mc *minimock.Controller) userService.Storer {
 				mock := storageMocks.NewUserMock(mc)
-				mock.CreateUserMock.Expect(ctx, req).Return(storageErr)
+				mock.CreateUserMock.Expect(ctx, user).Return(storageError)
 				return mock
 			},
 		},
+	}
+
+	txManagerMockFunc := func(mc *minimock.Controller) db.TxManager {
+		mock := dbMocks.NewTxManagerMock(mc)
+		return mock.ReadCommittedMock.Set(func(ctx context.Context, fn db.Handler) error {
+			return fn(ctx)
+		})
 	}
 
 	for _, tt := range tests {
@@ -106,12 +86,12 @@ func TestCreateUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			txManagerMock := tt.txManagerMock(mc)
-			userStorerMock := tt.userStorerMock(mc)
+			userStorerMock := tt.userStorerMockFunc(mc)
+			txManagerMock := txManagerMockFunc(mc)
 			service := userService.NewMockService(userStorerMock, txManagerMock)
 
-			err := service.CreateUser(tt.args.ctx, tt.args.req)
-			require.Equal(t, tt.err, err)
+			err := service.CreateUser(tt.in.ctx, tt.in.user)
+			require.Equal(t, tt.out.err, err)
 		})
 	}
 }

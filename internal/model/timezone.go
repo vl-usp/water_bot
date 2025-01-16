@@ -12,6 +12,7 @@ type Timezone struct {
 	UTCOffset int16
 }
 
+// FakeTimezone returns a fake timezone
 func FakeTimezone() *Timezone {
 	return &Timezone{
 		ID:        gofakeit.Uint8(),

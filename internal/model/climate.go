@@ -12,6 +12,7 @@ type Climate struct {
 	WaterCoef float64
 }
 
+// FakeClimate returns a fake climate
 func FakeClimate() *Climate {
 	return &Climate{
 		ID:        gofakeit.Uint8(),

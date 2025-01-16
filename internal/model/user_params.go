@@ -19,6 +19,7 @@ type UserParams struct {
 	UpdatedAt        *time.Time
 }
 
+// FakeUserParams returns a fake user params.
 func FakeUserParams() *UserParams {
 	weight := gofakeit.Uint8()
 	updatedAt := gofakeit.Date()
